@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 :root{
   --bg:#E4EAEC; --panel:#F6F8F8; --ink:#14282B; --muted:#52666A; --line:#C3D0D2;
@@ -88,6 +89,42 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .survey ul{margin:0 0 8px;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 .survey p{margin:0 0 10px;color:var(--muted)}
 .survey .tag{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--chip);margin-left:4px}
+.topbar{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.topbar .btn{white-space:nowrap;flex:0 0 auto}
+.topbar .where{font-size:13px;color:var(--muted);line-height:1.35;text-align:right}
+.picker{position:fixed;inset:0;z-index:50;background:var(--bg)}
+.picker[hidden]{display:none}
+.map{position:absolute;inset:0;background:var(--bg)}
+.pick-card{
+  position:absolute;left:16px;top:16px;z-index:1000;width:360px;max-width:calc(100% - 32px);
+  max-height:calc(100% - 32px);overflow-y:auto;background:var(--panel);color:var(--ink);
+  border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 6px 24px rgba(0,0,0,.18);
+}
+.pick-card h2{font:700 19px/1.25 Archivo,"Public Sans",system-ui,sans-serif;margin:0}
+.pick-card>p{margin:6px 0 12px;font-size:13px;line-height:1.5;color:var(--muted)}
+.pick-list{display:flex;flex-direction:column;gap:8px}
+.pick{
+  display:grid;grid-template-columns:30px 1fr;gap:10px;text-align:left;width:100%;cursor:pointer;
+  border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:11px;padding:10px;
+  font:500 13px/1.45 "Public Sans",system-ui,sans-serif;
+}
+.pick:hover,.pick.hot{background:var(--chip);border-color:var(--accent)}
+.pick strong{display:block;font-size:14px;font-weight:600}
+.pick span.c{color:var(--muted);font-size:12px}
+.pick .go{display:block;margin-top:4px;font-weight:600;color:var(--accent)}
+.badge{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#fff;font:700 13px "Public Sans",sans-serif;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.pick-note{margin:12px 0 0!important;font-size:12px!important}
+.mk-wrap{background:transparent;border:0}
+.mk-wrap .badge{width:30px;height:30px;font-size:14px}
+.leaflet-tooltip.mk-tip{font:600 12.5px "Public Sans",system-ui,sans-serif;padding:3px 8px;border-radius:8px}
+.leaflet-popup-content{font:400 13px/1.45 "Public Sans",system-ui,sans-serif;margin:12px 14px}
+.leaflet-popup-content strong{font-size:14px}
+.leaflet-popup-content .btn{margin-top:8px;display:inline-block}
+.picker:focus-visible,.pick:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+@media (max-width:760px){
+  .pick-card{top:auto;bottom:16px;left:16px;right:16px;width:auto;max-height:52%;padding:14px}
+  .pick-card h2{font-size:17px}
+}
 #fallback[hidden]{display:none}
 #fallback{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:#14282B;background:#BFD6E3}
 @media (max-width:760px){
@@ -102,16 +139,20 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 </head>
 <body>
 <main class="stage" id="stage">
-  <canvas id="c" role="img" aria-label="Animasi 3D alur uji coba e-MBLB di Titik 1: petugas memindai kartu sopir dengan mPOS, data dicatat, rekap operator, rekonsiliasi H+1, dan pendebetan."></canvas>
+  <canvas id="c" role="img" aria-label="Animasi 3D alur uji coba e-MBLB: petugas memindai kartu sopir dengan mPOS, data dicatat, rekap operator, rekonsiliasi H+1, dan pendebetan."></canvas>
   <div class="hud">
-    <h1>Pilot e-MBLB di Titik 1</h1>
-    <p>Toll gate bersama Wira Bhumi dan RPM, Kec. Gempol (7°35'20.4"S 112°40'20.9"E). Ilustrasi alur, bukan replika lokasi.</p>
+    <h1 id="hudTitle">Pilot e-MBLB di Titik 1</h1>
+    <p id="hudSub">Toll gate bersama Wira Bhumi dan RPM, Kec. Gempol. Ilustrasi alur, bukan replika lokasi.</p>
   </div>
   <div class="chip" id="chip" aria-live="off"></div>
   <div id="fallback" hidden>Library 3D tidak terbaca di file ini. Unduh ulang file terbaru lalu buka lagi.</div>
 </main>
 
 <section class="panel" aria-label="Alur uji coba">
+  <div class="topbar">
+    <button type="button" class="btn" id="tomap">&larr; Peta lokasi</button>
+    <span class="where" id="where"></span>
+  </div>
   <div class="seg" role="group" aria-label="Pilih cakupan simulasi">
     <button type="button" data-mode="shadow" aria-pressed="true">Mode bayangan</button>
     <button type="button" data-mode="debit" aria-pressed="false">Dengan debit H+1</button>
@@ -131,7 +172,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
   <details class="survey">
     <summary>Hasil survei titik pos pantau</summary>
     <ul>
-      <li><strong>Titik 1</strong>, toll gate Wira Bhumi &amp; RPM<span class="tag">disimulasikan</span><br>7°35'20.4"S 112°40'20.9"E. Satu gate untuk dua IUP.</li>
+      <li><strong>Titik 1</strong>, toll gate Wira Bhumi &amp; RPM<br>7°35'20.4"S 112°40'20.9"E. Satu gate untuk dua IUP.</li>
       <li><strong>Titik 2</strong>, gate PT Imasco (Colt)<br>-7.589008, 112.654311. Akses kendaraan kecil, ±1,8 km dari Titik 1.</li>
       <li><strong>Titik 3</strong>, gate PT Imasco (Tronton)<br>7°36'28.3"S 112°40'11.1"E. Lewat jalan desa, ±2 km ke selatan.</li>
     </ul>
@@ -142,6 +183,16 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
   <p class="hint">Seret untuk memutar sudut pandang, gulir atau cubit untuk zoom. Nama, jumlah kendaraan, dan angka di layar 3D hanya contoh.</p>
 </section>
 
+<div class="picker" id="picker" hidden>
+  <div class="map" id="map" aria-label="Peta titik pos pantau"></div>
+  <div class="pick-card">
+    <h2>Pilih titik pos pantau</h2>
+    <p>Area Wira Bhumi, Imasco, dan RPM, Kec. Gempol, Kab. Pasuruan. Pilih gate untuk melihat simulasi alur e-MBLB di titik itu.</p>
+    <div class="pick-list" id="picklist"></div>
+    <p class="pick-note" id="mapnote">Koordinat dari laporan survei Bapenda. Titik pos pantau final belum ditetapkan.</p>
+  </div>
+</div>
+
 <script>
 window.__errs=[];
 window.addEventListener('error',function(e){
@@ -150,6 +201,7 @@ window.addEventListener('error',function(e){
   if(f){f.hidden=false;f.innerHTML='<div><strong>Animasi gagal berjalan.</strong><br><br>Pesan teknis: '+window.__errs.join('<br>')+'<br><br>Kirim teks ini ke Claude supaya bisa diperbaiki.</div>';}
 });
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" onerror="window.__noLeaflet=true"></script>
 <script>
 /**
  * @license
@@ -242,6 +294,7 @@ function labelSprite(text,opt){
     sp.scale.set(cv.width*opt.k,cv.height*opt.k,1);
     tex.needsUpdate=true;
   }
+  sp.userData.set=function(t,bg){text=t; if(bg) opt.bg=bg; draw();};
   draw(); labels.push(draw); return sp;
 }
 function panelSprite(w,h,worldW,drawFn){
@@ -292,13 +345,14 @@ ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
 })();
 
 /* jalan */
-box(180,.12,10.4,M(0x4B5258),0,.06,0);
+var roadMat=M(0x4B5258), roadMarks=[];
+box(180,.12,10.4,roadMat,0,.06,0);
 box(180,.1,1.4,M(0xB59E78),0,.05,6.2);
 box(180,.1,1.4,M(0xB59E78),0,.05,-6.2);
-box(180,.03,.14,M(0xE8E4DA),0,.13,4.9);
-box(180,.03,.14,M(0xE8E4DA),0,.13,-4.9);
-for(var dx=-84;dx<=84;dx+=6){ if(Math.abs(dx)>5) box(2.6,.03,.16,M(0xE8E4DA),dx,.13,0); }
-box(.35,.03,4.6,M(0xE8E4DA),-6.2,.13,-2.6);
+roadMarks.push(box(180,.03,.14,M(0xE8E4DA),0,.13,4.9));
+roadMarks.push(box(180,.03,.14,M(0xE8E4DA),0,.13,-4.9));
+for(var dx=-84;dx<=84;dx+=6){ if(Math.abs(dx)>5) roadMarks.push(box(2.6,.03,.16,M(0xE8E4DA),dx,.13,0)); }
+roadMarks.push(box(.35,.03,4.6,M(0xE8E4DA),-6.2,.13,-2.6));
 
 /* gate Titik 1 */
 box(7,.22,2.0,M(0x9aa1a3),0,.11,0);
@@ -307,9 +361,11 @@ box(2.2,2.5,1.5,M(0xe9ecec),2.2,1.47,0);
 box(2.7,.2,1.9,M(0xE8742A),2.2,2.85,0);
 box(1.4,.8,.05,glass,2.2,1.9,.78);
 box(1.4,.8,.05,glass,2.2,1.9,-.78);
-box(.5,6.4,.5,M(0xd8d8d4),0,3.2,5.8);
-box(.5,6.4,.5,M(0xd8d8d4),0,3.2,-5.8);
-box(2.0,.5,12.4,M(0xE8742A),0,6.4,0);
+var canopy=[
+  box(.5,6.4,.5,M(0xd8d8d4),0,3.2,5.8),
+  box(.5,6.4,.5,M(0xd8d8d4),0,3.2,-5.8),
+  box(2.0,.5,12.4,M(0xE8742A),0,6.4,0)
+];
 var gateSign = labelSprite('Titik 1: Toll Gate Wira Bhumi & RPM',{bg:'#E8742A',fg:'#FFFFFF',size:36,k:.017});
 gateSign.position.set(0,8.2,0); scene.add(gateSign);
 
@@ -366,29 +422,31 @@ var hutTag=labelSprite('Operator tiap PT',{bg:'#7a5c34',size:32,k:.016}); hutTag
 
 /* ---------- truk ---------- */
 function makeTruck(color,name,css){
-  var g=new THREE.Group(), r=rng(color), dark=M(0x2c3236), bed=M(0x59626a);
-  box(8,.4,2.3,dark,0,.95,0,g);
-  box(2.0,2.2,2.3,M(color),3.0,2.1,0,g);
-  box(.05,1,1.9,glass,4.03,2.6,0,g);
-  box(1.1,.85,.05,glass,3.2,2.65,1.16,g);
-  box(1.1,.85,.05,glass,3.2,2.65,-1.16,g);
-  box(5.0,.3,2.3,bed,-.6,1.3,0,g);
-  box(5.0,1.0,.12,bed,-.6,1.95,1.09,g);
-  box(5.0,1.0,.12,bed,-.6,1.95,-1.09,g);
-  box(.12,1.0,2.3,bed,-3.1,1.95,0,g);
-  box(.12,1.0,2.3,bed,1.9,1.95,0,g);
+  var g=new THREE.Group(), body=new THREE.Group(), r=rng(color), dark=M(0x2c3236), bed=M(0x59626a), cab=M(color);
+  g.add(body);
+  box(8,.4,2.3,dark,0,.95,0,body);
+  box(2.0,2.2,2.3,cab,3.0,2.1,0,body);
+  box(.05,1,1.9,glass,4.03,2.6,0,body);
+  box(1.1,.85,.05,glass,3.2,2.65,1.16,body);
+  box(1.1,.85,.05,glass,3.2,2.65,-1.16,body);
+  box(5.0,.3,2.3,bed,-.6,1.3,0,body);
+  box(5.0,1.0,.12,bed,-.6,1.95,1.09,body);
+  box(5.0,1.0,.12,bed,-.6,1.95,-1.09,body);
+  box(.12,1.0,2.3,bed,-3.1,1.95,0,body);
+  box(.12,1.0,2.3,bed,1.9,1.95,0,body);
   var stone=M(0x8d867a);
   for(var i=0;i<10;i++){
     var s=new THREE.Mesh(new THREE.DodecahedronGeometry(.42+r()*.3),stone);
     s.position.set(-2.7+r()*4.3,2.5+r()*.4,(r()-.5)*1.5);
-    s.rotation.set(r()*3,r()*3,r()*3); s.castShadow=true; g.add(s);
+    s.rotation.set(r()*3,r()*3,r()*3); s.castShadow=true; body.add(s);
   }
   var tire=M(0x15191b);
   [-3,-1.8,3.1].forEach(function(x){[-1.15,1.15].forEach(function(z){
     var w=new THREE.Mesh(new THREE.CylinderGeometry(.62,.62,.45,14),tire);
-    w.rotation.x=Math.PI/2; w.position.set(x,.62,z); w.castShadow=true; g.add(w);
+    w.rotation.x=Math.PI/2; w.position.set(x,.62,z); w.castShadow=true; body.add(w);
   });});
   var tag=labelSprite(name,{bg:css,size:30,k:.014}); tag.position.set(.6,5.0,0); g.add(tag);
+  g.userData={body:body,cab:cab,tag:tag};
   g.position.set(-60,0,-2.6); scene.add(g); return g;
 }
 var truck1=makeTruck(0x2F6DA8,'Wira Bhumi','#2F6DA8');
@@ -414,7 +472,8 @@ function openAmt(t,a,b,c,d){return t<a?0:t<b?(t-a)/(b-a):t<c?1:t<d?1-(t-c)/(d-c)
 function makeCard(color){
   var g=new THREE.Group();
   box(.5,.32,.03,M(0xfafafa,{flatShading:false}),0,0,0,g);
-  box(.5,.09,.035,M(color,{flatShading:false}),0,.115,0,g);
+  g.userData.stripe=M(color,{flatShading:false});
+  box(.5,.09,.035,g.userData.stripe,0,.115,0,g);
   g.visible=false; g.renderOrder=8; scene.add(g); return g;
 }
 var TAPS=[
@@ -450,7 +509,7 @@ function drawLedger(g,w,h,s){
   g.font='600 28px '+FONT; g.fillStyle='#7FA3A6';
   g.fillText('Kendaraan',48,208); g.fillText('IUP',300,208); g.fillText('Status',560,208);
   g.fillStyle='#24565A'; g.fillRect(48,224,w-96,2);
-  var rows=[{k:'Truk 1',i:'Wira Bhumi',c:'#5AA2E0'},{k:'Truk 2',i:'RPM',c:'#6CCB7B'}];
+  var rows=G.ledger;
   g.font='500 34px '+FONT;
   for(var n=0;n<s.rows;n++){
     var y=290+n*74;
@@ -471,7 +530,7 @@ function drawRekap(g,w,h,s){
   g.fillStyle='#5b4326'; rr(g,0,0,w,h,34); g.fill();
   g.fillStyle='#FFD79A'; g.font='600 44px '+FONT; g.fillText('Rekap harian operator',44,84);
   g.fillStyle='#E8C99A'; g.font='400 30px '+FONT; g.fillText('Pukul 17.00, per IUP dari tiap pintu',44,130);
-  var rows=[['Wira Bhumi','1 kendaraan','#5AA2E0'],['RPM','1 kendaraan','#6CCB7B']];
+  var rows=G.rekap;
   g.font='500 36px '+FONT;
   for(var n=0;n<s.rows;n++){
     var y=222+n*80;
@@ -488,9 +547,9 @@ function drawRecon(g,w,h,s){
   g.fillStyle='#7FA3A6'; g.font='600 29px '+FONT;
   g.fillText('Data tap (sistem)',52,176); g.fillText('Rekap operator',w/2+36,176);
   g.fillStyle='#24565A'; g.fillRect(52,194,w-104,2);
-  var rows=['Wira Bhumi: 1 kendaraan','RPM: 1 kendaraan'];
+  var rows=G.recon;
   g.font='500 33px '+FONT;
-  for(var n=0;n<2;n++){
+  for(var n=0;n<rows.length;n++){
     var y=262+n*78;
     g.fillStyle='#E6F4F4'; g.fillText(rows[n],52,y); g.fillText(rows[n],w/2+36,y);
     if(n<s.n){
@@ -507,6 +566,45 @@ function drawRecon(g,w,h,s){
   g.fillStyle='#7FA3A6'; g.font='400 25px '+FONT; g.fillText('Angka contoh untuk ilustrasi',52,h-26);
 }
 var recon=panelSprite(1100,640,8.6,drawRecon); recon.position.set(SERVER.x,8.6,SERVER.z); recon.visible=false; scene.add(recon);
+
+/* ---------- titik pos pantau (dari laporan survei) ---------- */
+var JAM=' Jam layanan 05.00 sampai 17.00 dan hari libur operasional masih usulan.';
+var IMASCO_S1='Gate ini hanya dipakai Imasco, jadi asal IUP sudah jelas dari lokasinya. Petugas e-MBLB tetap memindai kartu sopir dengan mPOS untuk mencatat kendaraan dan jenisnya.';
+var IMASCO_S3='Operator Imasco menyusun rekap harian kendaraan yang keluar dari pintu ini, seperti yang berjalan sekarang.';
+var GATES=[
+  {key:'titik-1',n:1,mcol:'#1F4E79',ll:[-7.589000,112.672472],coord:'7°35\'20.4"S 112°40\'20.9"E',
+   name:'Toll Gate Wira Bhumi & RPM',desc:'Gate bersama PT Wira Bhumi dan PT RPM. Satu titik untuk dua IUP.',
+   sub:'Toll gate bersama Wira Bhumi dan RPM',
+   trucks:[{name:'Wira Bhumi',col:0x2F6DA8,css:'#2F6DA8'},{name:'RPM',col:0x3F8F4F,css:'#3F8F4F'}],
+   small:false,canopy:true,dirt:false,road:'Jalan umum, truk pihak lain bisa lewat',hut:'Operator tiap PT',
+   ledger:[{k:'Truk 1',i:'Wira Bhumi',c:'#5AA2E0'},{k:'Truk 2',i:'RPM',c:'#6CCB7B'}],
+   rekap:[['Wira Bhumi','1 kendaraan','#5AA2E0'],['RPM','1 kendaraan','#6CCB7B']],
+   recon:['Wira Bhumi: 1 kendaraan','RPM: 1 kendaraan'],
+   s0:'Truk Wira Bhumi dan RPM keluar lewat Titik 1, gate bersama dua IUP. Jalannya jalan umum, jadi truk pihak lain juga bisa lewat.'+JAM,
+   s1:'Saat ini asal IUP truk belum bisa dikenali di gate dan baru diketahui dari rekap operator sore hari. Dalam uji coba, petugas e-MBLB memindai kartu sopir dengan mPOS. Jika kartu didaftarkan per kendaraan dan per IUP, asal IUP langsung terbaca.',
+   s3:'Operator tiap PT menyusun rekap harian kendaraan keluar per IUP dari masing-masing pintu, seperti yang berjalan sekarang.'},
+  {key:'titik-2',n:2,mcol:'#C0561B',ll:[-7.589008,112.654311],coord:'-7.589008, 112.654311',
+   name:'Gate PT Imasco (Colt)',desc:'Akses kendaraan kecil (Colt) milik PT Imasco, sekitar 1,8 km dari Titik 1.',
+   sub:'Gate kendaraan kecil (Colt) PT Imasco',
+   trucks:[{name:'Imasco Colt 1',col:0x7A4AA0,css:'#7A4AA0'},{name:'Imasco Colt 2',col:0x7A4AA0,css:'#7A4AA0'}],
+   small:true,canopy:false,dirt:false,road:'Akses kendaraan kecil PT Imasco',hut:'Operator Imasco',
+   ledger:[{k:'Colt 1',i:'Imasco',c:'#B58BE0'},{k:'Colt 2',i:'Imasco',c:'#B58BE0'}],
+   rekap:[['Imasco (Colt)','2 kendaraan','#B58BE0']],
+   recon:['Imasco (Colt): 2 kendaraan'],
+   s0:'Colt PT Imasco keluar lewat Titik 2, gate khusus kendaraan kecil Imasco, sekitar 1,8 km dari Titik 1.'+JAM,
+   s1:IMASCO_S1,s3:IMASCO_S3},
+  {key:'titik-3',n:3,mcol:'#2E7D32',ll:[-7.607861,112.669750],coord:'7°36\'28.3"S 112°40\'11.1"E',
+   name:'Gate PT Imasco (Tronton)',desc:'Akses kendaraan besar (Tronton) milik PT Imasco lewat jalan desa, sekitar 2 km di selatan Titik 1.',
+   sub:'Gate Tronton PT Imasco, lewat jalan desa',
+   trucks:[{name:'Imasco Tronton 1',col:0x7A4AA0,css:'#7A4AA0'},{name:'Imasco Tronton 2',col:0x7A4AA0,css:'#7A4AA0'}],
+   small:false,canopy:false,dirt:true,road:'Jalan desa, jalur Tronton PT Imasco',hut:'Operator Imasco',
+   ledger:[{k:'Tronton 1',i:'Imasco',c:'#B58BE0'},{k:'Tronton 2',i:'Imasco',c:'#B58BE0'}],
+   rekap:[['Imasco (Tronton)','2 kendaraan','#B58BE0']],
+   recon:['Imasco (Tronton): 2 kendaraan'],
+   s0:'Tronton PT Imasco keluar lewat Titik 3 di jalan desa, sekitar 2 km di selatan Titik 1.'+JAM,
+   s1:IMASCO_S1,s3:IMASCO_S3}
+];
+var G=GATES[0];
 
 /* ---------- langkah, mode, kamera ---------- */
 var STEPS=[
@@ -535,6 +633,7 @@ var MODE_NOTE={
   shadow:'Petugas memindai kartu sopir dan mencatat. Belum ada pendebetan, jadi risiko hukum dan operasionalnya rendah.',
   debit:'Menambah langkah pendebetan H+1. Baru bisa berjalan setelah dasar hukum dan skema dengan Bank Jatim jelas.'
 };
+var mapOpen=false;
 var mode='shadow', t=0, playing=!reduce, last=performance.now(), lastIdx=-1, scrubbing=false;
 function list(){return STEPS.filter(function(s){return !s.debit||mode==='debit';});}
 function duration(){return mode==='debit'?45:35;}
@@ -575,7 +674,7 @@ scrubEl.addEventListener('pointerdown',function(){scrubbing=true;});
 window.addEventListener('pointerup',function(){scrubbing=false;});
 scrubEl.addEventListener('input',function(){t=clamp(Number(scrubEl.value)/10,0,duration()-.01);});
 window.addEventListener('keydown',function(e){
-  var tg=e.target&&e.target.tagName; if(tg==='BUTTON'||tg==='INPUT') return;
+  var tg=e.target&&e.target.tagName; if(mapOpen||tg==='BUTTON'||tg==='INPUT') return;
   if(e.key===' '){e.preventDefault();setPlaying(!playing);}
   if(e.key==='ArrowRight') document.getElementById('next').click();
   if(e.key==='ArrowLeft') document.getElementById('prev').click();
@@ -660,10 +759,10 @@ function apply(tt){
   var lrows=(tt>=11.0?1:0)+(tt>=16.1?1:0), foot=tt>=17.0;
   ledger.visible=tt>=11.0&&tt<29.6;
   if(ledger.visible) ledger.userData.update({rows:lrows,foot:foot,debit:debit},lrows+'|'+foot+'|'+debit);
-  var rrows=(tt>=22.4?1:0)+(tt>=23.2?1:0);
+  var rrows=Math.min(G.rekap.length,(tt>=22.4?1:0)+(tt>=23.2?1:0));
   rekap.visible=tt>=22&&tt<31;
   if(rekap.visible) rekap.userData.update({rows:rrows},String(rrows));
-  var cn=(tt>=30.6?1:0)+(tt>=31.6?1:0), sum=tt>=32.8;
+  var cn=Math.min(G.recon.length,(tt>=30.6?1:0)+(tt>=31.6?1:0)), sum=tt>=32.8;
   recon.visible=tt>=29.6;
   if(recon.visible) recon.userData.update({n:cn,sum:sum},cn+'|'+sum);
   payTag.visible=debit&&tt>=36&&tt<42.6;
@@ -679,6 +778,7 @@ if(window.ResizeObserver) new ResizeObserver(resize).observe(stage); window.addE
 
 function frame(now){
   var dt=Math.min(.05,(now-last)/1000); last=now;
+  if(mapOpen){requestAnimationFrame(frame); return;}
   if(playing){t+=dt; if(t>=duration()) t=0;}
   var idx=stepIndexAt(t);
   if(idx!==lastIdx){
@@ -701,7 +801,139 @@ if(document.fonts&&document.fonts.load){
   Promise.all([document.fonts.load('600 30px "Public Sans"'),document.fonts.load('500 30px "Public Sans"'),document.fonts.load('400 30px "Public Sans"')])
     .then(redrawText).catch(function(){});
 }
+/* ---------- ganti titik ---------- */
+function setGate(gt){
+  G=gt;
+  gateSign.userData.set('Titik '+G.n+': '+G.name);
+  gateSign.position.y=G.canopy?8.2:6.9;
+  canopy.forEach(function(m){m.visible=G.canopy;});
+  roadMat.color.set(G.dirt?0x8A7558:0x4B5258);
+  roadMarks.forEach(function(m){m.visible=!G.dirt;});
+  roadTag.userData.set(G.road);
+  hutTag.userData.set(G.hut);
+  [truck1,truck2].forEach(function(tr,i){
+    var d=G.trucks[i];
+    tr.userData.cab.color.set(d.col);
+    tr.userData.tag.userData.set(d.name,d.css);
+    tr.userData.body.scale.setScalar(G.small?.68:1);
+    tr.userData.tag.position.y=G.small?3.9:5.0;
+    TAPS[i].card.userData.stripe.color.set(d.col);
+    TAPS[i].label.userData.set('Terbaca: '+G.ledger[i].i+(G.small?' (Colt)':G.n===3?' (Tronton)':''),d.css);
+  });
+  STEPS[0].text=G.s0; STEPS[1].text=G.s1; STEPS[3].text=G.s3;
+  document.getElementById('hudTitle').textContent='Pilot e-MBLB di Titik '+G.n;
+  document.getElementById('hudSub').textContent=G.sub+', Kec. Gempol ('+G.coord+'). Ilustrasi alur, bukan replika lokasi.';
+  document.getElementById('where').textContent='Titik '+G.n+': '+G.name;
+  canvas.setAttribute('aria-label','Animasi 3D alur uji coba e-MBLB di Titik '+G.n+' ('+G.name+'): petugas memindai kartu sopir dengan mPOS, data dicatat, rekap operator, rekonsiliasi H+1, dan pendebetan.');
+  panels.forEach(function(p){p.userData.reset();});
+  t=0; user.th=0; user.ph=0; user.rm=1;
+  cur.tx=c0.tx; cur.ty=c0.ty; cur.tz=c0.tz; cur.r=c0.r; cur.th=c0.th; cur.ph=c0.ph;
+  renderSteps(); setPlaying(!reduce);
+}
+window.emblbSim={
+  gates:GATES,
+  open:function(gt){setGate(gt); mapOpen=false; last=performance.now(); resize();},
+  pause:function(){mapOpen=true;}
+};
+setGate(G);
 requestAnimationFrame(frame);
+})();
+</script>
+
+<script>
+/* ---------- peta pilih titik ---------- */
+(function(){
+'use strict';
+var picker=document.getElementById('picker'), listEl=document.getElementById('picklist');
+var sim=window.emblbSim;
+var GATES=sim?sim.gates:[];
+var map=null, markers={}, current=null;
+var behind=[document.getElementById('stage'),document.querySelector('.panel')];
+function setInert(on){behind.forEach(function(el){if(el) el.inert=on;});}
+var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function gateByKey(k){for(var i=0;i<GATES.length;i++){if(GATES[i].key===k)return GATES[i];}return null;}
+
+function showMap(){
+  current=null;
+  picker.hidden=false; setInert(true);
+  if(sim) sim.pause();
+  if(map){ map.invalidateSize(); map.closePopup(); }
+  else buildMap();
+}
+function choose(gt){
+  if(location.hash!=='#'+gt.key) location.hash=gt.key;
+  else start(gt);
+}
+function start(gt){
+  if(current===gt) return;
+  current=gt;
+  picker.hidden=true; setInert(false);
+  if(sim) sim.open(gt); else document.getElementById('fallback').hidden=false;
+}
+function route(){
+  if(!sim){picker.hidden=true; return;} /* WebGL gagal: biarkan pesan fallback terlihat */
+  var gt=gateByKey(location.hash.slice(1));
+  if(gt) start(gt); else showMap();
+}
+
+GATES.forEach(function(gt){
+  var b=document.createElement('button');
+  b.type='button'; b.className='pick';
+  b.innerHTML='<span class="badge" style="background:'+gt.mcol+'">'+gt.n+'</span><span><strong>Titik '+gt.n+': '+gt.name.replace('&','&amp;')+'</strong>'+
+    gt.desc+'<br><span class="c">'+gt.coord+'</span><span class="go">Lihat simulasi &rarr;</span></span>';
+  b.addEventListener('click',function(){choose(gt);});
+  b.addEventListener('mouseenter',function(){var m=markers[gt.key]; if(m) m.openTooltip();});
+  listEl.appendChild(b);
+});
+
+function buildMap(){
+  if(typeof L==='undefined'){
+    document.getElementById('mapnote').textContent='Peta tidak bisa dimuat (perlu koneksi internet). Pilih titik dari daftar di atas.';
+    return;
+  }
+  var small=window.innerWidth<=760;
+  map=L.map('map',{zoomControl:false,attributionControl:true});
+  L.control.zoom({position:'topright'}).addTo(map);
+  var osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'});
+  var sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles &copy; Esri'});
+  osm.addTo(map);
+  L.control.layers({'Peta':osm,'Satelit':sat},null,{position:'topright'}).addTo(map);
+  L.control.scale({imperial:false,position:'bottomright'}).addTo(map);
+
+  var pts=GATES.map(function(g){return g.ll;});
+  L.polyline([GATES[1].ll,GATES[0].ll,GATES[2].ll],{color:'#14282B',weight:2,opacity:.55,dashArray:'6 6'}).addTo(map);
+  GATES.forEach(function(gt){
+    var icon=L.divIcon({className:'mk-wrap',html:'<span class="badge" style="background:'+gt.mcol+'">'+gt.n+'</span>',iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-14]});
+    var m=L.marker(gt.ll,{icon:icon,keyboard:true,title:'Titik '+gt.n+': '+gt.name}).addTo(map);
+    var left=gt.n===2;
+    m.bindTooltip('Titik '+gt.n+': '+gt.name,{permanent:!small,direction:left?'left':'right',offset:[left?-16:16,0],className:'mk-tip'});
+    var box=document.createElement('div');
+    box.innerHTML='<strong>Titik '+gt.n+': '+gt.name.replace('&','&amp;')+'</strong><br>'+gt.desc+'<br><small>'+gt.coord+'</small><br>';
+    var go=document.createElement('button'); go.type='button'; go.className='btn primary'; go.textContent='Lihat simulasi';
+    go.addEventListener('click',function(){choose(gt);});
+    box.appendChild(go);
+    m.bindPopup(box);
+    markers[gt.key]=m;
+  });
+
+  /* mulai jauh, lalu mendekat ke tiga titik */
+  var bounds=L.latLngBounds(pts);
+  var pad=small?{paddingTopLeft:[40,40],paddingBottomRight:[40,Math.round(window.innerHeight*.5)]}
+               :{paddingTopLeft:[400,60],paddingBottomRight:[80,60]};
+  pad.maxZoom=14;
+  map.setView(bounds.getCenter(),11);
+  if(reduce) map.fitBounds(bounds,pad);
+  else setTimeout(function(){map.flyToBounds(bounds,Object.assign({duration:1.6},pad));},500);
+}
+
+document.getElementById('tomap').addEventListener('click',function(){
+  if(location.hash) history.pushState(null,'',location.pathname+location.search);
+  showMap();
+});
+window.addEventListener('hashchange',route);
+window.addEventListener('popstate',route);
+route();
 })();
 </script>
 </body>
