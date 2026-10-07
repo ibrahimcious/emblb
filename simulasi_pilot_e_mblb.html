@@ -173,7 +173,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 </head>
 <body>
 <main class="stage" id="stage">
-  <canvas id="c" role="img" aria-label="Animasi 3D alur uji coba e-MBLB: petugas memindai kartu sopir dengan mPOS, data dicatat, rekap operator, rekonsiliasi H+1, dan pendebetan."></canvas>
+  <canvas id="c" role="img" aria-label="Animasi 3D alur uji coba e-MBLB: truk dimuat, admin tambang memberi kartu, sopir mengetap kartu ke mPOS petugas, petugas memberi struk, data dicatat, rekap operator, rekonsiliasi H+1, dan pendebetan."></canvas>
   <div class="hud">
     <h1 id="hudTitle">Pilot e-MBLB di Titik 1</h1>
     <p id="hudSub">Toll gate bersama Wira Bhumi dan RPM, Kec. Gempol. Ilustrasi alur, bukan replika lokasi.</p>
@@ -509,11 +509,11 @@ function makeTruck(color,name,css){
   box(5.0,1.0,.12,bed,-.6,1.95,-1.09,body);
   box(.12,1.0,2.3,bed,-3.1,1.95,0,body);
   box(.12,1.0,2.3,bed,1.9,1.95,0,body);
-  var stone=M(0x8d867a);
+  var stone=M(0x8d867a), stones=[];
   for(var i=0;i<10;i++){
     var s=new THREE.Mesh(new THREE.DodecahedronGeometry(.42+r()*.3),stone);
     s.position.set(-2.7+r()*4.3,2.5+r()*.4,(r()-.5)*1.5);
-    s.rotation.set(r()*3,r()*3,r()*3); s.castShadow=true; body.add(s);
+    s.rotation.set(r()*3,r()*3,r()*3); s.castShadow=true; body.add(s); stones.push(s);
   }
   var tire=M(0x15191b);
   [-3,-1.8,3.1].forEach(function(x){[-1.15,1.15].forEach(function(z){
@@ -521,11 +521,59 @@ function makeTruck(color,name,css){
     w.rotation.x=Math.PI/2; w.position.set(x,.62,z); w.castShadow=true; body.add(w);
   });});
   var tag=labelSprite(name,{bg:css,size:30,k:.014}); tag.position.set(.6,5.0,0); g.add(tag);
-  g.userData={body:body,cab:cab,tag:tag};
+  g.userData={body:body,cab:cab,tag:tag,stones:stones};
   g.position.set(-60,0,-2.6); scene.add(g); return g;
 }
 var truck1=makeTruck(0x2F6DA8,'Wira Bhumi','#2F6DA8');
 var truck2=makeTruck(0x3F8F4F,'RPM','#3F8F4F');
+
+/* ---------- lokasi tambang: pemuatan dan admin ---------- */
+var LOAD=14; /* detik tambahan di awal untuk pemuatan dan penyerahan kartu */
+box(30,.04,22,M(0xB8956A,{flatShading:false}),-53,.02,-8);
+var pile=new THREE.Mesh(new THREE.ConeGeometry(6,5,9),M(0x8d867a)); pile.position.set(-53,2.5,-20); pile.castShadow=true; pile.receiveShadow=true; scene.add(pile);
+var EXC=new THREE.Vector3(-53,0,-9);
+var exc=new THREE.Group(); exc.position.copy(EXC); scene.add(exc);
+var excY=M(0xE0B12A), excD=M(0x2c3236);
+box(4.2,1.0,3.4,excD,0,.5,0,exc);
+var excTop=new THREE.Group(); excTop.position.y=1.0; exc.add(excTop);
+box(3.2,1.6,3.0,excY,0,.9,-.6,excTop);
+box(1.3,1.3,1.2,excY,-.8,2.3,.2,excTop);
+box(1.0,.8,.05,glass,-.8,2.4,.82,excTop);
+var boom=new THREE.Group(); boom.position.set(.4,1.6,1.0); excTop.add(boom);
+var boomArm=box(.6,.6,7.5,excY,0,0,3.75,boom);
+var bucket=box(1.4,1.0,1.1,excD,0,-.6,7.6,boom);
+var bucketRock=new THREE.Mesh(new THREE.DodecahedronGeometry(.55),M(0x8d867a)); bucketRock.position.set(0,-.1,7.6); boom.add(bucketRock);
+var excTag=labelSprite('Pemuatan di lokasi tambang',{bg:'#7a5c34',size:30,k:.015}); excTag.position.set(-53,8.6,-12); scene.add(excTag);
+
+/* admin tambang */
+function makePerson(shirt,hat,x,z){
+  var g=new THREE.Group(); g.position.set(x,0,z); g.scale.setScalar(1.6); scene.add(g);
+  var skinM=M(0xC68E63), pantsM=M(0x2c3a4a), shirtM=M(shirt);
+  box(.2,.85,.22,pantsM,-.14,.43,0,g); box(.2,.85,.22,pantsM,.14,.43,0,g);
+  box(.56,.8,.32,shirtM,0,1.27,0,g);
+  box(.14,.7,.16,shirtM,.36,1.2,0,g);
+  var h=new THREE.Mesh(new THREE.SphereGeometry(.22,14,10),skinM); h.position.set(0,1.92,0); h.castShadow=true; g.add(h);
+  box(.5,.12,.5,M(hat),0,2.1,0,g);
+  var armL=new THREE.Group(); armL.position.set(-.36,1.6,0); g.add(armL);
+  box(.14,.7,.16,shirtM,0,-.35,0,armL);
+  g.userData.arm=armL; return g;
+}
+var ADMIN=new THREE.Vector3(-50,0,4.6);
+var admin=makePerson(0x2F5E8C,0xffffff,ADMIN.x,ADMIN.z); admin.rotation.y=Math.PI;
+box(3.2,2.4,2.6,M(0xd9d4c4),-50,1.2,9.2); box(3.7,.25,3.1,M(0x5a6b75),-50,2.5,9.2);
+box(1.1,.8,.05,glass,-50,1.4,7.88);
+var adminTag=labelSprite('Admin tambang',{bg:'#2F5E8C',size:30,k:.015}); adminTag.position.set(-50,4.6,6.2); scene.add(adminTag);
+var handTag=labelSprite('Admin memberi kartu ke sopir',{bg:'#2F5E8C',size:28,k:.014}); handTag.visible=false; scene.add(handTag);
+
+/* kartu dari admin ke sopir, dan struk dari petugas ke sopir */
+function makePaper(){
+  var g=new THREE.Group();
+  box(.45,.62,.02,M(0xffffff,{flatShading:false}),0,0,0,g);
+  for(var i=0;i<5;i++) box(.3,.03,.03,M(0x9aa1a3),0,.2-i*.1,.014,g);
+  g.visible=false; scene.add(g); return g;
+}
+/* jadwal pemuatan per truk (detik sejak awal) */
+var LOADS=[{x:-46,a:.6,b:4.0,c:4.4,d:6.6},{x:-60,a:6.9,b:10.3,c:10.7,d:12.9}];
 
 function truckX(t,n){
   var x;
@@ -556,6 +604,9 @@ var TAPS=[
   {t:13.4,card:makeCard(0x3F8F4F), label:labelSprite('Terbaca: RPM',{bg:'#3F8F4F',size:30,k:.014})}
 ];
 TAPS.forEach(function(tp){tp.label.position.set(-.8,4.1,-1.15);tp.label.visible=false;scene.add(tp.label);});
+LOADS[0].card=makeCard(0x2F6DA8); LOADS[1].card=makeCard(0x3F8F4F);
+TAPS.forEach(function(tp){tp.receipt=makePaper();});
+var receiptTag=labelSprite('Struk bukti tap untuk sopir',{bg:'#55606a',size:28,k:.014}); receiptTag.position.set(1.4,1.5,2.2); receiptTag.visible=false; scene.add(receiptTag);
 
 /* paket data */
 function V(x,y,z){return new THREE.Vector3(x,y,z);}
@@ -708,24 +759,24 @@ var probOn=true, focusIdx=-1;
 
 /* ---------- titik pos pantau (dari laporan survei) ---------- */
 var JAM=' Jam layanan 05.00 sampai 17.00 dan hari libur operasional masih usulan.';
-var IMASCO_S1='Gate ini hanya dipakai Imasco, jadi asal IUP sudah jelas dari lokasinya. Petugas e-MBLB tetap memindai kartu sopir dengan mPOS untuk mencatat kendaraan dan jenisnya.';
+var IMASCO_S1='Gate ini hanya dipakai Imasco, jadi asal IUP sudah jelas dari lokasinya. Sopir tetap mengetap kartunya ke mPOS petugas e-MBLB untuk mencatat kendaraan dan jenisnya.';
 var IMASCO_S3='Operator Imasco menyusun rekap harian kendaraan yang keluar dari pintu ini, seperti yang berjalan sekarang.';
 var GATES=[
   {key:'titik-1',n:1,mcol:'#1F4E79',ll:[-7.589000,112.672472],coord:'7°35\'20.4"S 112°40\'20.9"E',
    name:'Toll Gate Wira Bhumi & RPM',desc:'Gate bersama PT Wira Bhumi dan PT RPM. Satu titik untuk dua IUP.',
    sub:'Toll gate bersama Wira Bhumi dan RPM',
    trucks:[{name:'Wira Bhumi',col:0x2F6DA8,css:'#2F6DA8'},{name:'RPM',col:0x3F8F4F,css:'#3F8F4F'}],
-   small:false,canopy:true,dirt:false,road:'Jalan umum, truk pihak lain bisa lewat',hut:'Operator tiap PT',
+   small:false,canopy:true,dirt:false,road:'Jalan umum, truk pihak lain bisa lewat',hut:'Operator tiap PT',admin:'Admin tambang tiap PT',
    ledger:[{k:'Truk 1',i:'Wira Bhumi',c:'#5AA2E0'},{k:'Truk 2',i:'RPM',c:'#6CCB7B'}],
    rekap:[{i:'Wira Bhumi',n:1,c:'#5AA2E0'},{i:'RPM',n:1,c:'#6CCB7B'}],
    s0:'Truk Wira Bhumi dan RPM keluar lewat Titik 1, gate bersama dua IUP. Jalannya jalan umum, jadi truk pihak lain juga bisa lewat.'+JAM,
-   s1:'Saat ini asal IUP truk belum bisa dikenali di gate dan baru diketahui dari rekap operator sore hari. Dalam uji coba, petugas e-MBLB memindai kartu sopir dengan mPOS. Jika kartu didaftarkan per kendaraan dan per IUP, asal IUP langsung terbaca.',
+   s1:'Saat ini asal IUP truk belum bisa dikenali di gate dan baru diketahui dari rekap operator sore hari. Dalam uji coba, sopir mengetap kartu dari admin tambang ke mPOS yang dipegang petugas e-MBLB. Jika kartu didaftarkan per kendaraan dan per IUP, asal IUP langsung terbaca.',
    s3:'Operator tiap PT menyusun rekap harian kendaraan keluar per IUP dari masing-masing pintu, seperti yang berjalan sekarang.'},
   {key:'titik-2',n:2,mcol:'#C0561B',ll:[-7.589008,112.654311],coord:'-7.589008, 112.654311',
    name:'Gate PT Imasco (Colt)',desc:'Akses kendaraan kecil (Colt) milik PT Imasco, sekitar 1,8 km dari Titik 1.',
    sub:'Gate kendaraan kecil (Colt) PT Imasco',
    trucks:[{name:'Imasco Colt 1',col:0x7A4AA0,css:'#7A4AA0'},{name:'Imasco Colt 2',col:0x7A4AA0,css:'#7A4AA0'}],
-   small:true,canopy:false,dirt:false,road:'Akses kendaraan kecil PT Imasco',hut:'Operator Imasco',
+   small:true,canopy:false,dirt:false,road:'Akses kendaraan kecil PT Imasco',hut:'Operator Imasco',admin:'Admin tambang Imasco',
    ledger:[{k:'Colt 1',i:'Imasco',c:'#B58BE0'},{k:'Colt 2',i:'Imasco',c:'#B58BE0'}],
    rekap:[{i:'Imasco (Colt)',n:2,c:'#B58BE0'}],
    s0:'Colt PT Imasco keluar lewat Titik 2, gate khusus kendaraan kecil Imasco, sekitar 1,8 km dari Titik 1.'+JAM,
@@ -734,7 +785,7 @@ var GATES=[
    name:'Gate PT Imasco (Tronton)',desc:'Akses kendaraan besar (Tronton) milik PT Imasco lewat jalan desa, sekitar 2 km di selatan Titik 1.',
    sub:'Gate Tronton PT Imasco, lewat jalan desa',
    trucks:[{name:'Imasco Tronton 1',col:0x7A4AA0,css:'#7A4AA0'},{name:'Imasco Tronton 2',col:0x7A4AA0,css:'#7A4AA0'}],
-   small:false,canopy:false,dirt:true,road:'Jalan desa, jalur Tronton PT Imasco',hut:'Operator Imasco',
+   small:false,canopy:false,dirt:true,road:'Jalan desa, jalur Tronton PT Imasco',hut:'Operator Imasco',admin:'Admin tambang Imasco',
    ledger:[{k:'Tronton 1',i:'Imasco',c:'#B58BE0'},{k:'Tronton 2',i:'Imasco',c:'#B58BE0'}],
    rekap:[{i:'Imasco (Tronton)',n:2,c:'#B58BE0'}],
    s0:'Tronton PT Imasco keluar lewat Titik 3 di jalan desa, sekitar 2 km di selatan Titik 1.'+JAM,
@@ -744,12 +795,18 @@ var G=GATES[0];
 
 /* ---------- langkah, mode, kamera ---------- */
 var STEPS=[
+  {t0:0, p:6,chip:'Hari H, di lokasi tambang',title:'Truk dimuat di lokasi tambang',
+   text:'Truk diisi material tambang di lokasi IUP. Pemuatan berjalan seperti biasa, belum ada yang berubah bagi PT.'},
+  {t0:4, p:7,chip:'Hari H, di lokasi tambang',title:'Admin tambang memberi kartu ke sopir',
+   text:'Setelah truk terisi, admin tambang menyerahkan kartu e-MBLB kepada sopir. Kartu inilah yang nanti ditap di gate, sehingga asal truk bisa dikenali.'},
   {t0:0, p:0,chip:'Hari H, layanan 05.00 sampai 17.00',title:'Truk mendekati gate',
    text:'Truk Wira Bhumi dan RPM keluar lewat Titik 1, gate bersama dua IUP. Jalannya jalan umum, jadi truk pihak lain juga bisa lewat. Jam layanan 05.00 sampai 17.00 dan hari libur operasional masih usulan.'},
-  {t0:6, p:1,chip:'Hari H, layanan 05.00 sampai 17.00',title:'Petugas memindai kartu sopir',
-   text:'Saat ini asal IUP truk belum bisa dikenali di gate dan baru diketahui dari rekap operator sore hari. Dalam uji coba, petugas e-MBLB memindai kartu sopir dengan mPOS. Jika kartu didaftarkan per kendaraan dan per IUP, asal IUP langsung terbaca.'},
+  {t0:6, p:1,chip:'Hari H, layanan 05.00 sampai 17.00',title:'Sopir mengetap kartu ke petugas',
+   text:'Saat ini asal IUP truk belum bisa dikenali di gate dan baru diketahui dari rekap operator sore hari. Dalam uji coba, sopir mengetap kartu dari admin tambang ke mPOS yang dipegang petugas e-MBLB. Jika kartu didaftarkan per kendaraan dan per IUP, asal IUP langsung terbaca.'},
+  {t0:8.75,p:1,chip:'Hari H, layanan 05.00 sampai 17.00',title:'Petugas memberi struk, truk lewat',
+   text:'Petugas menyerahkan struk dari mPOS kepada sopir sebagai bukti tap, lalu palang dibuka dan truk lewat. Truk berikutnya mengulang langkah yang sama.'},
   {t0:14,p:2,chip:'Hari H, layanan 05.00 sampai 17.00',title:'Petugas mencatat transaksi',
-   text:'Hasil pindai kartu dicatat petugas e-MBLB. Pada mode bayangan belum ada pendebetan atau pungutan.'},
+   text:'Data tap kartu tercatat di sistem e-MBLB. Pada mode bayangan belum ada pendebetan atau pungutan.'},
   {t0:21,p:3,chip:'Hari H, menjelang 17.00',title:'Operator merekap sore hari',
    text:'Operator tiap PT menyusun rekap harian kendaraan keluar per IUP dari masing-masing pintu, seperti yang berjalan sekarang.'},
   {t0:27,p:4,chip:'Hari H+1, pagi',title:'Rekonsiliasi H+1',
@@ -763,10 +820,15 @@ var PRESETS=[
   {tx:7,ty:4.2,tz:-8,r:22,th:-.25,ph:1.25},
   {tx:-9,ty:3.6,tz:-8,r:20,th:.15,ph:1.25},
   {tx:7,ty:4.8,tz:-8,r:22,th:-.25,ph:1.25},
-  {tx:14.5,ty:4.2,tz:-8,r:32,th:-.1,ph:1.25}
+  {tx:14.5,ty:4.2,tz:-8,r:32,th:-.1,ph:1.25},
+  {tx:-53,ty:2,tz:-8,r:34,th:-.55,ph:1.08},
+  {tx:-50,ty:2.2,tz:0,r:24,th:-.35,ph:1.15}
 ];
-STEPS[3].prob='Masalah 2: truk yang lewat setelah 17.00, saat petugas tidak berjaga, tidak terpindai di gate tetapi tetap masuk rekap operator.';
-STEPS[4].prob='Selisih dari truk di luar jam layanan muncul di sini. Sumber data yang diakui untuk SPTPD (masalah 1) belum diputuskan.';
+/* langkah setelah dua langkah tambang bergeser sebanyak LOAD detik */
+STEPS.forEach(function(st,i){ if(i>=2) st.t0+=LOAD; });
+var ST={approach:2,tap:3,rekap:6,recon:7};
+STEPS[ST.rekap].prob='Masalah 2: truk yang lewat setelah 17.00, saat petugas tidak berjaga, tidak terpindai di gate tetapi tetap masuk rekap operator.';
+STEPS[ST.recon].prob='Selisih dari truk di luar jam layanan muncul di sini. Sumber data yang diakui untuk SPTPD (masalah 1) belum diputuskan.';
 var MODE_NOTE={
   shadow:'Petugas memindai kartu sopir dan mencatat. Belum ada pendebetan, jadi risiko hukum dan operasionalnya rendah.',
   debit:'Menambah langkah pendebetan H+1. Baru bisa berjalan setelah dasar hukum dan skema dengan Bank Jatim jelas.'
@@ -774,7 +836,7 @@ var MODE_NOTE={
 var mapOpen=false;
 var mode='shadow', t=0, playing=!reduce, last=performance.now(), lastIdx=-1, scrubbing=false;
 function list(){return STEPS.filter(function(s){return !s.debit||mode==='debit';});}
-function duration(){return mode==='debit'?45:35;}
+function duration(){return (mode==='debit'?45:35)+LOAD;}
 function stepIndexAt(tt){var l=list(),idx=0;for(var i=0;i<l.length;i++){if(tt>=l[i].t0)idx=i;}return idx;}
 
 var stepsEl=document.getElementById('steps'), chipEl=document.getElementById('chip');
@@ -841,7 +903,7 @@ canvas.addEventListener('pointermove',function(e){
 canvas.addEventListener('wheel',function(e){e.preventDefault();user.rm=clamp(user.rm*Math.exp(e.deltaY*.001),.5,1.8);},{passive:false});
 
 function updateCamera(dt,idx){
-  var offView=probOn&&t>=23&&t<27.8;
+  var offView=probOn&&t-LOAD>=23&&t-LOAD<27.8;
   var P=focusIdx>=0?PROBS[focusIdx].cam:offView?PROBS[1].cam:PRESETS[list()[idx].p], asp=camera.aspect, fit=asp<1?1+(1-asp)*.9:1;
   var k=reduce?1:1-Math.exp(-dt*2.2);
   cur.tx=lerp(cur.tx,P.tx,k); cur.ty=lerp(cur.ty,P.ty,k); cur.tz=lerp(cur.tz,P.tz,k);
@@ -855,13 +917,51 @@ function updateCamera(dt,idx){
 
 /* ---------- animasi sebagai fungsi waktu ---------- */
 var tmpA=new THREE.Color(), SUN_MORNING=new THREE.Color(0xfff1dc), SUN_DUSK=new THREE.Color(0xff9a55);
-function apply(tt){
+function boomAngleTo(x,z){return Math.atan2(x-EXC.x,z-EXC.z);}
+function applyMine(tt){
+  /* tt: detik sejak awal (sebelum truk berangkat ke gate) */
+  var yaw=Math.PI, dip=0, carry=false, hand=-1;
+  LOADS.forEach(function(L,i){
+    var tr=i===0?truck1:truck2, st=tr.userData.stones;
+    var fill=tt<L.a?0:1;
+    if(tt>=L.a&&tt<L.b){
+      /* tiga kali ayun: tumpukan -> bak truk */
+      var cyc=(tt-L.a)/(L.b-L.a)*3, f=cyc-Math.floor(cyc);
+      var toTruck=f<.5?smooth(f*2):1-smooth((f-.5)*2);
+      yaw=lerp(Math.PI,boomAngleTo(L.x-.6,-2.6),toTruck);
+      dip=Math.sin(f*Math.PI*2)*.12; carry=f<.45;
+      fill=Math.min(1,(Math.floor(cyc)+(f>.45?1:0))/3);
+    }
+    if(tt>=LOAD) fill=1;
+    var nshow=Math.round(fill*st.length);
+    st.forEach(function(m,j){m.visible=j<nshow;});
+    /* kartu: admin -> jendela kabin */
+    var vis=tt>=L.c&&tt<L.d-.6;
+    L.card.visible=vis;
+    if(vis){
+      var u=smooth(seg(tt,L.c+.4,L.d-1.2));
+      L.card.position.set(lerp(ADMIN.x-.5,L.x+3.2,u),lerp(2.6,2.7,u)+Math.sin(u*Math.PI)*1.6,lerp(ADMIN.z-.6,-1.3,u));
+      L.card.rotation.y=Math.PI/2*u;
+      hand=i;
+    }
+  });
+  excTop.rotation.y=yaw;
+  boom.rotation.x=-.32+dip;
+  bucketRock.visible=carry;
+  admin.userData.arm.rotation.x=hand>=0?-2.4:0;
+  handTag.visible=hand>=0;
+  if(hand>=0) handTag.position.set(lerp(ADMIN.x,LOADS[hand].x+3,.5),5.6,1.4);
+}
+function apply(tt0){
+  applyMine(tt0);
+  var tt=tt0-LOAD; /* jadwal lama dimulai setelah pemuatan */
   var debit=mode==='debit';
   var offRun=probOn&&tt>=23.4&&tt<27.2;
   truck1.position.x=offRun?lerp(-60,48,seg(tt,23.4,27)):truckX(tt,1); truck2.position.x=truckX(tt,2);
   offTag.visible=offRun;
   var away=probOn&&tt>=23.1&&tt<27.6;
-  petugas.visible=!away; posDev.visible=!away; mposTag.visible=!away;
+  var reading=TAPS.some(function(tp){return tt>tp.t+.1&&tt<tp.t+2.6;});
+  petugas.visible=!away; posDev.visible=!away; mposTag.visible=!away&&!reading;
 
   arm.rotation.x=smooth(Math.max(openAmt(tt,9.3,9.9,12.0,12.6),openAmt(tt,14.4,15.0,17.2,17.8),
     probOn?openAmt(tt,24.8,25.2,25.8,26.2):0))*1.3;
@@ -869,7 +969,8 @@ function apply(tt){
   var pulse=1+Math.sin(performance.now()/260)*.06;
   PROBS.forEach(function(pr,i){
     /* tanda yang terlalu dekat kamera disembunyikan agar tidak menutupi layar */
-    pr.sprite.visible=probOn&&(i===focusIdx||camera.position.distanceTo(pr.sprite.position)>16);
+    var atGate=tt>=6&&tt<14; /* langkah tap dan struk: tanda masalah disembunyikan agar alurnya terlihat */
+    pr.sprite.visible=probOn&&(i===focusIdx||(!atGate&&camera.position.distanceTo(pr.sprite.position)>16));
     var base=pr.sprite.userData.base||(pr.sprite.userData.base=pr.sprite.scale.clone());
     var f=i===focusIdx?pulse*1.12:1;
     pr.sprite.scale.set(base.x*f,base.y*f,1);
@@ -884,10 +985,18 @@ function apply(tt){
       tp.card.position.set(lerp(-.6,-.8,u),lerp(2.5,2.3,u)+Math.sin(u*Math.PI)*.5,lerp(-1.6,-1.32,u));
     }
     tp.label.visible=tt>tp.t+.1&&tt<tp.t+2.6;
+    var rv=tt>=tp.t+.35&&tt<tp.t+1.15;
+    tp.receipt.visible=rv;
+    if(rv){
+      var ru2=smooth(seg(tt,tp.t+.35,tp.t+1.0));
+      tp.receipt.position.set(-.8,lerp(2.2,2.75,ru2)+Math.sin(ru2*Math.PI)*.35,lerp(-1.05,-1.5,ru2));
+      tp.receipt.rotation.y=lerp(0,Math.PI/2,ru2);
+    }
     if(tt>=tp.t&&tt<tp.t+2.2) screenOn=true;
     var ru=(tt-tp.t)/.9; if(ru>=0&&ru<=1) ringU=ru;
   });
   screenMat.color.set(screenOn?0x5bff9a:0x1d8a8a);
+  receiptTag.visible=TAPS.some(function(tp){return tt>=tp.t+.35&&tt<tp.t+2.2;});
   ring.visible=ringU>=0;
   if(ringU>=0){ring.scale.setScalar(1+ringU*3);ring.material.opacity=1-ringU;}
 
@@ -949,7 +1058,7 @@ function frame(now){
 }
 
 setMode('shadow'); setPlaying(playing); resize();
-var c0=PRESETS[0]; cur.tx=c0.tx; cur.ty=c0.ty; cur.tz=c0.tz; cur.r=c0.r; cur.th=c0.th; cur.ph=c0.ph;
+var c0=PRESETS[6]; cur.tx=c0.tx; cur.ty=c0.ty; cur.tz=c0.tz; cur.r=c0.r; cur.th=c0.th; cur.ph=c0.ph;
 
 function redrawText(){labels.forEach(function(f){f();}); panels.forEach(function(p){p.userData.reset();});}
 if(document.fonts&&document.fonts.load){
@@ -979,7 +1088,7 @@ function openProb(i){
   probCard.hidden=false; probCard.scrollTop=0;
   PROBS.forEach(function(p,j){p.sprite.userData.select(j===i);});
   probList.querySelectorAll('.pbtn').forEach(function(b,j){if(j===i)b.setAttribute('aria-current','true');else b.removeAttribute('aria-current');});
-  if(i===1){ jumpTo(23.0); setPlaying(!reduce); } else setPlaying(false);
+  if(i===1){ jumpTo(23.0+LOAD); setPlaying(!reduce); } else setPlaying(false);
 }
 function closeProb(){
   focusIdx=-1; probCard.hidden=true;
@@ -1034,13 +1143,15 @@ function setGate(gt){
     tr.userData.body.scale.setScalar(G.small?.68:1);
     tr.userData.tag.position.y=G.small?3.9:5.0;
     TAPS[i].card.userData.stripe.color.set(d.col);
+    LOADS[i].card.userData.stripe.color.set(d.col);
     TAPS[i].label.userData.set('Terbaca: '+G.ledger[i].i+(G.small?' (Colt)':G.n===3?' (Tronton)':''),d.css);
   });
-  STEPS[0].text=G.s0; STEPS[1].text=G.s1; STEPS[3].text=G.s3;
+  STEPS[ST.approach].text=G.s0; STEPS[ST.tap].text=G.s1; STEPS[ST.rekap].text=G.s3;
+  adminTag.userData.set(G.admin);
   document.getElementById('hudTitle').textContent='Pilot e-MBLB di Titik '+G.n;
   document.getElementById('hudSub').textContent=G.sub+', Kec. Gempol ('+G.coord+'). Ilustrasi alur, bukan replika lokasi.';
   document.getElementById('where').textContent='Titik '+G.n+': '+G.name;
-  canvas.setAttribute('aria-label','Animasi 3D alur uji coba e-MBLB di Titik '+G.n+' ('+G.name+'): petugas memindai kartu sopir dengan mPOS, data dicatat, rekap operator, rekonsiliasi H+1, dan pendebetan.');
+  canvas.setAttribute('aria-label','Animasi 3D alur uji coba e-MBLB di Titik '+G.n+' ('+G.name+'): truk dimuat, admin tambang memberi kartu, sopir mengetap kartu ke mPOS petugas, petugas memberi struk, data dicatat, rekap operator, rekonsiliasi H+1, dan pendebetan.');
   panels.forEach(function(p){p.userData.reset();});
   t=0; user.th=0; user.ph=0; user.rm=1;
   cur.tx=c0.tx; cur.ty=c0.ty; cur.tz=c0.tz; cur.r=c0.r; cur.th=c0.th; cur.ph=c0.ph;
