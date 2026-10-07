@@ -125,6 +125,40 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
   .pick-card{top:auto;bottom:16px;left:16px;right:16px;width:auto;max-height:52%;padding:14px}
   .pick-card h2{font-size:17px}
 }
+.probbox{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:14px}
+.switch{display:flex;gap:9px;align-items:center;font-weight:600;font-size:14px;cursor:pointer}
+.switch input{width:18px;height:18px;accent-color:var(--accent);margin:0}
+.problist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.problist[hidden]{display:none}
+.pbtn{
+  width:100%;text-align:left;border:0;background:transparent;color:var(--ink);cursor:pointer;
+  display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;
+  font:500 13.5px/1.35 "Public Sans",system-ui,sans-serif;
+}
+.pbtn:hover{background:var(--chip)}
+.pbtn[aria-current="true"]{background:var(--chip);font-weight:600}
+.pnum{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#FFC94D;color:#3a2a05;font:700 12.5px "Public Sans",sans-serif;flex:0 0 auto}
+.prob-card{
+  position:absolute;left:16px;bottom:16px;z-index:5;width:400px;max-width:calc(100% - 32px);max-height:calc(100% - 130px);
+  overflow-y:auto;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-left:5px solid #E8A400;
+  border-radius:14px;padding:14px 16px;box-shadow:0 8px 28px rgba(0,0,0,.22);font-size:13.5px;line-height:1.5;
+}
+.prob-card[hidden]{display:none}
+.prob-head{display:flex;gap:10px;align-items:flex-start}
+.prob-head .k{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.2px}
+.prob-head h2{font:700 16.5px/1.3 Archivo,"Public Sans",system-ui,sans-serif;margin:1px 0 0}
+.prob-head .x{margin-left:auto;border:0;background:transparent;color:var(--muted);font-size:22px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:8px}
+.prob-card p{margin:10px 0 0}
+.prob-card ul{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+.prob-card li{padding:8px 10px;border-radius:9px;background:var(--chip)}
+.prob-card li b{font-weight:600}
+.prob-card .usulan{padding:9px 11px;border-radius:9px;border:1px solid #E8A400}
+.prob-card .anim{color:var(--muted);font-size:12.5px}
+.prob-nav{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px}
+.prob-nav span{font-size:12.5px;color:var(--muted)}
+@media (max-width:760px){
+  .prob-card{left:10px;right:10px;bottom:10px;width:auto;max-width:none;max-height:calc(100% - 60px);padding:12px 13px}
+}
 #fallback[hidden]{display:none}
 #fallback{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:#14282B;background:#BFD6E3}
 @media (max-width:760px){
@@ -145,6 +179,22 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
     <p id="hudSub">Toll gate bersama Wira Bhumi dan RPM, Kec. Gempol. Ilustrasi alur, bukan replika lokasi.</p>
   </div>
   <div class="chip" id="chip" aria-live="off"></div>
+  <div class="prob-card" id="probCard" hidden role="dialog" aria-labelledby="probTitle">
+    <div class="prob-head">
+      <span class="pnum" id="probNum"></span>
+      <div><div class="k">Keputusan yang dibutuhkan</div><h2 id="probTitle"></h2></div>
+      <button type="button" class="x" id="probClose" aria-label="Tutup">&times;</button>
+    </div>
+    <p id="probText"></p>
+    <ul id="probOpts"></ul>
+    <p class="usulan" id="probUsulan"></p>
+    <p class="anim" id="probAnim"></p>
+    <div class="prob-nav">
+      <button type="button" class="btn" id="probPrev">Sebelumnya</button>
+      <span id="probIdx"></span>
+      <button type="button" class="btn" id="probNext">Berikutnya</button>
+    </div>
+  </div>
   <div id="fallback" hidden>Library 3D tidak terbaca di file ini. Unduh ulang file terbaru lalu buka lagi.</div>
 </main>
 
@@ -169,6 +219,11 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 
   <ol class="steps" id="steps"></ol>
 
+  <div class="probbox">
+    <label class="switch"><input type="checkbox" id="probToggle" checked><span>Tampilkan masalah yang perlu diputuskan</span></label>
+    <ol class="problist" id="problist"></ol>
+  </div>
+
   <details class="survey">
     <summary>Hasil survei titik pos pantau</summary>
     <ul>
@@ -180,7 +235,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
     <p>Usulan libur operasional: Tahun Baru, Lebaran, Idul Adha, dan bulan Agustus (HUT RI). Kegiatan masyarakat sekitar disampaikan lewat surat resmi ke PT.</p>
   </details>
 
-  <p class="hint">Seret untuk memutar sudut pandang, gulir atau cubit untuk zoom. Nama, jumlah kendaraan, dan angka di layar 3D hanya contoh.</p>
+  <p class="hint">Tanda kuning bernomor di layar 3D adalah keputusan yang belum diambil; klik untuk detail. Seret untuk memutar sudut pandang, gulir atau cubit untuk zoom. Nama, jumlah kendaraan, dan angka di layar 3D hanya contoh.</p>
 </section>
 
 <div class="picker" id="picker" hidden>
@@ -309,6 +364,26 @@ function panelSprite(w,h,worldW,drawFn){
   };
   sp.userData.reset=function(){key=null;};
   panels.push(sp); return sp;
+}
+
+function badgeSprite(num,text){
+  var cv=document.createElement('canvas'), tex=makeTex(cv), size=30, k=.0135, sel=false;
+  var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false,fog:false}));
+  sp.renderOrder=12;
+  function draw(){
+    var g=cv.getContext('2d'); g.font='600 '+size+'px '+FONT;
+    var tw=Math.ceil(g.measureText(text).width), H=Math.round(size*1.9), W=H+tw+Math.round(size*.8);
+    cv.width=W; cv.height=H;
+    g=cv.getContext('2d'); g.font='600 '+size+'px '+FONT; g.textBaseline='middle';
+    g.fillStyle=sel?'#FFB000':'#FFC94D'; rr(g,3,3,W-6,H-6,(H-6)/2); g.fill();
+    g.lineWidth=sel?6:3; g.strokeStyle='#3a2a05'; rr(g,3,3,W-6,H-6,(H-6)/2); g.stroke();
+    g.fillStyle='#3a2a05'; g.beginPath(); g.arc(H/2,H/2,H/2-9,0,6.3); g.fill();
+    g.fillStyle='#FFC94D'; g.textAlign='center'; g.fillText(num,H/2,H/2+1);
+    g.textAlign='left'; g.fillStyle='#3a2a05'; g.fillText(text,H+2,H/2+1);
+    sp.scale.set(W*k,H*k,1); tex.needsUpdate=true;
+  }
+  sp.userData.select=function(v){if(v!==sel){sel=v;draw();sp.userData.base=null;}};
+  draw(); labels.push(function(){draw();sp.userData.base=null;}); return sp;
 }
 
 /* ---------- lingkungan ---------- */
@@ -497,7 +572,7 @@ PK.forEach(function(p){
 });
 
 /* tag tambahan */
-var payTag=labelSprite('Pendebetan H+1',{bg:'#3d7a1e',size:30,k:.015}); payTag.position.set(15,7.0,-9); payTag.visible=false; scene.add(payTag);
+var payTag=labelSprite('Pendebetan H+1, uji coba Rp100',{bg:'#3d7a1e',size:30,k:.015}); payTag.position.set(15,7.0,-9); payTag.visible=false; scene.add(payTag);
 var paidTag=labelSprite('Masuk kas daerah',{bg:'#3d7a1e',size:30,k:.015}); paidTag.position.set(24,6.3,-9); paidTag.visible=false; scene.add(paidTag);
 
 /* ---------- panel di layar 3D ---------- */
@@ -533,10 +608,14 @@ function drawRekap(g,w,h,s){
   var rows=G.rekap;
   g.font='500 36px '+FONT;
   for(var n=0;n<s.rows;n++){
-    var y=222+n*80;
-    g.fillStyle=rows[n][2]; g.beginPath(); g.arc(58,y-12,12,0,6.3); g.fill();
-    g.fillStyle='#FFF3DC'; g.fillText(rows[n][0],86,y);
-    g.fillStyle='#FFD79A'; g.fillText(rows[n][1],360,y);
+    var y=222+n*80, plus=s.extra&&n===0;
+    g.fillStyle=rows[n].c; g.beginPath(); g.arc(58,y-12,12,0,6.3); g.fill();
+    g.fillStyle='#FFF3DC'; g.fillText(rows[n].i,86,y);
+    g.fillStyle=plus?'#FFC94D':'#FFD79A'; g.fillText((rows[n].n+(plus?1:0))+' kendaraan',400,y);
+  }
+  if(s.extra){
+    g.fillStyle='#FFC94D'; g.font='600 28px '+FONT;
+    g.fillText('Termasuk 1 truk yang lewat setelah 17.00',44,h-34);
   }
 }
 var rekap=panelSprite(800,420,5.8,drawRekap); rekap.position.set(HUT.x,7.1,HUT.z); rekap.visible=false; scene.add(rekap);
@@ -547,25 +626,85 @@ function drawRecon(g,w,h,s){
   g.fillStyle='#7FA3A6'; g.font='600 29px '+FONT;
   g.fillText('Data tap (sistem)',52,176); g.fillText('Rekap operator',w/2+36,176);
   g.fillStyle='#24565A'; g.fillRect(52,194,w-104,2);
-  var rows=G.recon;
+  var rows=G.rekap;
   g.font='500 33px '+FONT;
   for(var n=0;n<rows.length;n++){
-    var y=262+n*78;
-    g.fillStyle='#E6F4F4'; g.fillText(rows[n],52,y); g.fillText(rows[n],w/2+36,y);
+    var y=262+n*78, off=s.prob&&n===0;
+    g.fillStyle='#E6F4F4'; g.fillText(rows[n].i+': '+rows[n].n+' kendaraan',52,y);
+    g.fillStyle=off?'#FFC94D':'#E6F4F4'; g.fillText(rows[n].i+': '+(rows[n].n+(off?1:0))+' kendaraan',w/2+36,y);
     if(n<s.n){
-      g.fillStyle='#5bff9a'; g.beginPath(); g.arc(w/2-4,y-11,19,0,6.3); g.fill();
-      g.strokeStyle='#0E3A3E'; g.lineWidth=5; g.lineCap='round'; g.lineJoin='round';
-      g.beginPath(); g.moveTo(w/2-13,y-10); g.lineTo(w/2-6,y-3); g.lineTo(w/2+6,y-19); g.stroke();
+      if(off){
+        g.fillStyle='#FFC94D'; g.beginPath(); g.arc(w/2-4,y-11,19,0,6.3); g.fill();
+        g.fillStyle='#3a2a05'; g.font='700 28px '+FONT; g.textAlign='center'; g.fillText('!',w/2-4,y-1); g.textAlign='left';
+        g.font='500 33px '+FONT;
+      } else {
+        g.fillStyle='#5bff9a'; g.beginPath(); g.arc(w/2-4,y-11,19,0,6.3); g.fill();
+        g.strokeStyle='#0E3A3E'; g.lineWidth=5; g.lineCap='round'; g.lineJoin='round';
+        g.beginPath(); g.moveTo(w/2-13,y-10); g.lineTo(w/2-6,y-3); g.lineTo(w/2+6,y-19); g.stroke();
+      }
     }
   }
   if(s.sum){
-    g.fillStyle='#5bff9a'; rr(g,52,h-136,w-104,70,18); g.fill();
-    g.fillStyle='#07301a'; g.font='600 34px '+FONT;
-    g.fillText('Selisih 0 kendaraan, dicatat untuk evaluasi',76,h-88);
+    g.fillStyle=s.prob?'#FFC94D':'#5bff9a'; rr(g,52,h-136,w-104,70,18); g.fill();
+    g.fillStyle=s.prob?'#3a2a05':'#07301a'; g.font='600 '+(s.prob?30:34)+'px '+FONT;
+    g.fillText(s.prob?'Selisih 1 kendaraan: lewat setelah 17.00, tidak terpindai':'Selisih 0 kendaraan, dicatat untuk evaluasi',76,h-89);
   }
   g.fillStyle='#7FA3A6'; g.font='400 25px '+FONT; g.fillText('Angka contoh untuk ilustrasi',52,h-26);
 }
 var recon=panelSprite(1100,640,8.6,drawRecon); recon.position.set(SERVER.x,8.6,SERVER.z); recon.visible=false; scene.add(recon);
+
+/* ---------- masalah: keputusan yang dibutuhkan (memo 7 Okt 2026) ---------- */
+var offTag=labelSprite('Setelah 17.00, tidak ada petugas: tidak tercatat',{bg:'#8a5a00',size:30,k:.014});
+offTag.position.set(.6,6.5,0); offTag.visible=false; truck1.add(offTag);
+
+var PROBS=[
+  {tag:'Sumber data SPTPD?',pos:V(10.5,2.2,-5.6),
+   cam:{tx:7,ty:4.8,tz:-8,r:22,th:-.25,ph:1.25},
+   title:'Sumber data yang diakui untuk SPTPD',
+   text:'SPTPD bersumber dari rekap dashboard e-MBLB, atau WP tetap melapor sendiri dari Buku Bantu Penerimaan? Bila yang diakui hanya data dashboard, penerimaan bisa turun.',
+   opts:[['A','Dashboard menjadi dasar dan SPTPD terisi otomatis. Rekonsiliasi paling mudah, tetapi WP harus diedukasi dan jalur keberatan perlu disiapkan.'],
+         ['B','WP tetap melapor dari Buku Bantu Penerimaan, dashboard dipakai sebagai pembanding. Lebih mudah diterima WP, tetapi selisih antara yang dilaporkan dan yang dibayarkan harus ditelusuri.']],
+   usulan:'Opsi B untuk pilot, lalu hasil uji coba dipakai untuk memutuskan apakah layak beralih ke Opsi A.',
+   anim:'Di animasi: catatan transaksi dan rekonsiliasi H+1 di gedung tengah.'},
+  {tag:'Truk di luar jam layanan?',pos:V(9,3.4,2.6),
+   cam:{tx:-6,ty:2.4,tz:-1,r:30,th:-.55,ph:1.15},
+   title:'Truk di luar jam layanan',
+   text:'Truk bisa keluar saat tidak ada petugas atau di luar jam layanan sehingga tidak tercatat di gate. Belum jelas apakah petugas bertugas 24 jam.',
+   opts:[['A','Jam layanan gate disamakan dengan jam operasional tambang (usulan 05.00 sampai 17.00, perlu dikonfirmasi ke ketiga PT).'],
+         ['B','Petugas jaga 24 jam atau bergilir. Cakupannya penuh, tetapi butuh SDM dan anggaran lebih besar.'],
+         ['C','Di luar jam layanan, volume tetap diakui lewat rekap operator PT sebagai cadangan.']],
+   usulan:'Opsi A digabung Opsi C, dan selama uji coba dicatat berapa truk yang lewat di luar jam layanan agar keputusan jangka panjang punya data.',
+   anim:'Di animasi (langkah 4): setelah 17.00 petugas tidak berjaga, satu truk lewat tanpa dipindai. Truk itu masuk rekap operator dan muncul sebagai selisih di rekonsiliasi H+1.'},
+  {tag:'Kode per PT?',pos:V(-3.4,3.0,-2.4),
+   cam:{tx:-1.5,ty:2.6,tz:-1.5,r:15,th:-.5,ph:1.15},
+   title:'Kode pembeda per PT',
+   text:'Sistem penerimaan pajak membutuhkan kode khusus per PT agar data gate bisa dihubungkan ke WP dan ke laporan SPTPD-nya, sehingga bisa dijawab apakah yang dilaporkan sama dengan yang dibayarkan.',
+   opts:[['A','Satu kode per PT. Sederhana, tetapi tidak menelusuri sampai ke kendaraan.'],
+         ['B','Kode per PT dan per kartu atau kendaraan, dipetakan ke WP di PATRIOT. Lebih mudah ditelusuri, tetapi pendaftaran kartu lebih banyak.']],
+   usulan:'Opsi B. Jumlah kendaraan per PT sekaligus menjadi dasar kebutuhan kartu yang diminta Bank Jatim. Yang masih perlu diputuskan: kode diterbitkan dan dikelola di sistem mana.',
+   anim:'Di animasi: kartu sopir yang dipindai mPOS di gate.'},
+  {tag:'Siapa petugas jaga?',pos:V(-.8,6.1,-.3),
+   cam:{tx:-.8,ty:3,tz:-.3,r:15,th:-.3,ph:1.2},
+   title:'Petugas jaga dari UPT 1',
+   text:'Belum ada kesepakatan internal Bapenda, terutama di UPT 1, soal siapa yang bertugas di gate dan bagaimana pelaksanaannya. Dibutuhkan surat tugas atau SK tim pilot yang menyebut nama petugas dan jadwal jaga.',
+   opts:[['A','Petugas UPT 1 bertugas bergilir selama pilot. Kebutuhannya kecil karena hanya satu titik dan uji coba sekitar satu minggu.'],
+         ['B','Melibatkan pihak lain (Dishub atau PT), yang membutuhkan kesepakatan lintas pihak lebih dulu.']],
+   usulan:'Opsi A untuk pilot. Kebutuhan SDM jangka panjang dipetakan setelah ada hasil uji coba.',
+   anim:'Di animasi: petugas e-MBLB berompi oranye di samping palang.'},
+  {tag:'Lokasi percontohan?',pos:V(7.6,8.2,0),
+   cam:{tx:2,ty:5,tz:0,r:30,th:-.45,ph:1.12},
+   title:'Wira Bhumi sebagai lokasi percontohan',
+   text:'Wira Bhumi adalah kontributor pajak MBLB tertinggi, sementara target triwulan IV ditetapkan tinggi. Apakah Titik 1 tetap menjadi lokasi percontohan?',
+   opts:[['A','Tetap Titik 1 (Wira Bhumi dan RPM). Satu gate sudah menutup dua IUP dan toll gate sudah tersedia. Uji coba memakai debit Rp100, sehingga beban ke WP sangat kecil. Risikonya ada pada kelancaran operasional di WP terbesar.'],
+         ['B','Mulai dari titik lain, misalnya gate Imasco. Risiko ke penerimaan lebih kecil, tetapi lebih rumit (dua gate dan satu pintu manual) dan tidak menutup dua IUP sekaligus.']],
+   usulan:'Opsi A, dengan persetujuan tertulis dari WP dan kejelasan perlakuan debit Rp100 (dikembalikan atau masuk kas), yang perlu dikonfirmasi ke bagian hukum.',
+   anim:'Di animasi: papan nama gate. Pilihan titik lain bisa dilihat lewat tombol Peta lokasi.'}
+];
+PROBS.forEach(function(pr,i){
+  pr.sprite=badgeSprite(String(i+1),pr.tag);
+  pr.sprite.position.copy(pr.pos); pr.sprite.userData.prob=i; scene.add(pr.sprite);
+});
+var probOn=true, focusIdx=-1;
 
 /* ---------- titik pos pantau (dari laporan survei) ---------- */
 var JAM=' Jam layanan 05.00 sampai 17.00 dan hari libur operasional masih usulan.';
@@ -578,8 +717,7 @@ var GATES=[
    trucks:[{name:'Wira Bhumi',col:0x2F6DA8,css:'#2F6DA8'},{name:'RPM',col:0x3F8F4F,css:'#3F8F4F'}],
    small:false,canopy:true,dirt:false,road:'Jalan umum, truk pihak lain bisa lewat',hut:'Operator tiap PT',
    ledger:[{k:'Truk 1',i:'Wira Bhumi',c:'#5AA2E0'},{k:'Truk 2',i:'RPM',c:'#6CCB7B'}],
-   rekap:[['Wira Bhumi','1 kendaraan','#5AA2E0'],['RPM','1 kendaraan','#6CCB7B']],
-   recon:['Wira Bhumi: 1 kendaraan','RPM: 1 kendaraan'],
+   rekap:[{i:'Wira Bhumi',n:1,c:'#5AA2E0'},{i:'RPM',n:1,c:'#6CCB7B'}],
    s0:'Truk Wira Bhumi dan RPM keluar lewat Titik 1, gate bersama dua IUP. Jalannya jalan umum, jadi truk pihak lain juga bisa lewat.'+JAM,
    s1:'Saat ini asal IUP truk belum bisa dikenali di gate dan baru diketahui dari rekap operator sore hari. Dalam uji coba, petugas e-MBLB memindai kartu sopir dengan mPOS. Jika kartu didaftarkan per kendaraan dan per IUP, asal IUP langsung terbaca.',
    s3:'Operator tiap PT menyusun rekap harian kendaraan keluar per IUP dari masing-masing pintu, seperti yang berjalan sekarang.'},
@@ -589,8 +727,7 @@ var GATES=[
    trucks:[{name:'Imasco Colt 1',col:0x7A4AA0,css:'#7A4AA0'},{name:'Imasco Colt 2',col:0x7A4AA0,css:'#7A4AA0'}],
    small:true,canopy:false,dirt:false,road:'Akses kendaraan kecil PT Imasco',hut:'Operator Imasco',
    ledger:[{k:'Colt 1',i:'Imasco',c:'#B58BE0'},{k:'Colt 2',i:'Imasco',c:'#B58BE0'}],
-   rekap:[['Imasco (Colt)','2 kendaraan','#B58BE0']],
-   recon:['Imasco (Colt): 2 kendaraan'],
+   rekap:[{i:'Imasco (Colt)',n:2,c:'#B58BE0'}],
    s0:'Colt PT Imasco keluar lewat Titik 2, gate khusus kendaraan kecil Imasco, sekitar 1,8 km dari Titik 1.'+JAM,
    s1:IMASCO_S1,s3:IMASCO_S3},
   {key:'titik-3',n:3,mcol:'#2E7D32',ll:[-7.607861,112.669750],coord:'7°36\'28.3"S 112°40\'11.1"E',
@@ -599,8 +736,7 @@ var GATES=[
    trucks:[{name:'Imasco Tronton 1',col:0x7A4AA0,css:'#7A4AA0'},{name:'Imasco Tronton 2',col:0x7A4AA0,css:'#7A4AA0'}],
    small:false,canopy:false,dirt:true,road:'Jalan desa, jalur Tronton PT Imasco',hut:'Operator Imasco',
    ledger:[{k:'Tronton 1',i:'Imasco',c:'#B58BE0'},{k:'Tronton 2',i:'Imasco',c:'#B58BE0'}],
-   rekap:[['Imasco (Tronton)','2 kendaraan','#B58BE0']],
-   recon:['Imasco (Tronton): 2 kendaraan'],
+   rekap:[{i:'Imasco (Tronton)',n:2,c:'#B58BE0'}],
    s0:'Tronton PT Imasco keluar lewat Titik 3 di jalan desa, sekitar 2 km di selatan Titik 1.'+JAM,
    s1:IMASCO_S1,s3:IMASCO_S3}
 ];
@@ -619,7 +755,7 @@ var STEPS=[
   {t0:27,p:4,chip:'Hari H+1, pagi',title:'Rekonsiliasi H+1',
    text:'Besok paginya data tap dicocokkan dengan rekap sore antar-operator dari tiap pintu atau PT. Selisihnya dicatat sebagai bahan evaluasi uji coba. SOP rekonsiliasinya masih perlu disusun.'},
   {t0:35,p:5,chip:'Hari H+1, pagi',debit:true,title:'Pendebetan H+1',
-   text:'Pendebetan diusulkan H+1, mengikuti hasil rekonsiliasi antar-operator, lewat Bank Jatim ke kas daerah. Skema rekeningnya masih dibahas dengan bank dan butuh dasar hukum yang jelas.'}
+   text:'Pendebetan diusulkan H+1, mengikuti hasil rekonsiliasi antar-operator, lewat Bank Jatim ke kas daerah. Selama uji coba sekitar satu minggu, debit diset Rp100. Skema rekeningnya masih dibahas dengan bank dan butuh dasar hukum yang jelas.'}
 ];
 var PRESETS=[
   {tx:-6,ty:1.4,tz:-2,r:34,th:-.5,ph:1.1},
@@ -629,6 +765,8 @@ var PRESETS=[
   {tx:7,ty:4.8,tz:-8,r:22,th:-.25,ph:1.25},
   {tx:14.5,ty:4.2,tz:-8,r:32,th:-.1,ph:1.25}
 ];
+STEPS[3].prob='Masalah 2: truk yang lewat setelah 17.00, saat petugas tidak berjaga, tidak terpindai di gate tetapi tetap masuk rekap operator.';
+STEPS[4].prob='Selisih dari truk di luar jam layanan muncul di sini. Sumber data yang diakui untuk SPTPD (masalah 1) belum diputuskan.';
 var MODE_NOTE={
   shadow:'Petugas memindai kartu sopir dan mencatat. Belum ada pendebetan, jadi risiko hukum dan operasionalnya rendah.',
   debit:'Menambah langkah pendebetan H+1. Baru bisa berjalan setelah dasar hukum dan skema dengan Bank Jatim jelas.'
@@ -648,7 +786,8 @@ function renderSteps(){
   list().forEach(function(s,i){
     var li=document.createElement('li'), b=document.createElement('button');
     b.type='button'; b.className='step';
-    b.innerHTML='<span class="n">'+(i+1)+'</span><span><strong>'+s.title+'</strong><p>'+s.text+'</p></span>';
+    var extra=probOn&&s.prob?' <em>'+s.prob+'</em>':'';
+    b.innerHTML='<span class="n">'+(i+1)+'</span><span><strong>'+s.title+'</strong><p>'+s.text+extra+'</p></span>';
     b.addEventListener('click',function(){jumpTo(s.t0+.05);});
     li.appendChild(b); stepsEl.appendChild(li);
   });
@@ -702,7 +841,8 @@ canvas.addEventListener('pointermove',function(e){
 canvas.addEventListener('wheel',function(e){e.preventDefault();user.rm=clamp(user.rm*Math.exp(e.deltaY*.001),.5,1.8);},{passive:false});
 
 function updateCamera(dt,idx){
-  var P=PRESETS[list()[idx].p], asp=camera.aspect, fit=asp<1?1+(1-asp)*.9:1;
+  var offView=probOn&&t>=23&&t<27.8;
+  var P=focusIdx>=0?PROBS[focusIdx].cam:offView?PROBS[1].cam:PRESETS[list()[idx].p], asp=camera.aspect, fit=asp<1?1+(1-asp)*.9:1;
   var k=reduce?1:1-Math.exp(-dt*2.2);
   cur.tx=lerp(cur.tx,P.tx,k); cur.ty=lerp(cur.ty,P.ty,k); cur.tz=lerp(cur.tz,P.tz,k);
   cur.r=lerp(cur.r,P.r*fit*user.rm,k); cur.th=lerp(cur.th,P.th+user.th,k); cur.ph=lerp(cur.ph,clamp(P.ph+user.ph,.35,1.5),k);
@@ -717,9 +857,23 @@ function updateCamera(dt,idx){
 var tmpA=new THREE.Color(), SUN_MORNING=new THREE.Color(0xfff1dc), SUN_DUSK=new THREE.Color(0xff9a55);
 function apply(tt){
   var debit=mode==='debit';
-  truck1.position.x=truckX(tt,1); truck2.position.x=truckX(tt,2);
+  var offRun=probOn&&tt>=23.4&&tt<27.2;
+  truck1.position.x=offRun?lerp(-60,48,seg(tt,23.4,27)):truckX(tt,1); truck2.position.x=truckX(tt,2);
+  offTag.visible=offRun;
+  var away=probOn&&tt>=23.1&&tt<27.6;
+  petugas.visible=!away; posDev.visible=!away; mposTag.visible=!away;
 
-  arm.rotation.x=smooth(Math.max(openAmt(tt,9.3,9.9,12.0,12.6),openAmt(tt,14.4,15.0,17.2,17.8)))*1.3;
+  arm.rotation.x=smooth(Math.max(openAmt(tt,9.3,9.9,12.0,12.6),openAmt(tt,14.4,15.0,17.2,17.8),
+    probOn?openAmt(tt,24.8,25.2,25.8,26.2):0))*1.3;
+
+  var pulse=1+Math.sin(performance.now()/260)*.06;
+  PROBS.forEach(function(pr,i){
+    /* tanda yang terlalu dekat kamera disembunyikan agar tidak menutupi layar */
+    pr.sprite.visible=probOn&&(i===focusIdx||camera.position.distanceTo(pr.sprite.position)>16);
+    var base=pr.sprite.userData.base||(pr.sprite.userData.base=pr.sprite.scale.clone());
+    var f=i===focusIdx?pulse*1.12:1;
+    pr.sprite.scale.set(base.x*f,base.y*f,1);
+  });
 
   var screenOn=false, ringU=-1;
   TAPS.forEach(function(tp){
@@ -760,11 +914,12 @@ function apply(tt){
   ledger.visible=tt>=11.0&&tt<29.6;
   if(ledger.visible) ledger.userData.update({rows:lrows,foot:foot,debit:debit},lrows+'|'+foot+'|'+debit);
   var rrows=Math.min(G.rekap.length,(tt>=22.4?1:0)+(tt>=23.2?1:0));
+  var extra=probOn&&tt>=26;
   rekap.visible=tt>=22&&tt<31;
-  if(rekap.visible) rekap.userData.update({rows:rrows},String(rrows));
-  var cn=Math.min(G.recon.length,(tt>=30.6?1:0)+(tt>=31.6?1:0)), sum=tt>=32.8;
+  if(rekap.visible) rekap.userData.update({rows:rrows,extra:extra},rrows+'|'+extra);
+  var cn=Math.min(G.rekap.length,(tt>=30.6?1:0)+(tt>=31.6?1:0)), sum=tt>=32.8;
   recon.visible=tt>=29.6;
-  if(recon.visible) recon.userData.update({n:cn,sum:sum},cn+'|'+sum);
+  if(recon.visible) recon.userData.update({n:cn,sum:sum,prob:probOn},cn+'|'+sum+'|'+probOn);
   payTag.visible=debit&&tt>=36&&tt<42.6;
   paidTag.visible=debit&&tt>=42.6;
 }
@@ -801,11 +956,72 @@ if(document.fonts&&document.fonts.load){
   Promise.all([document.fonts.load('600 30px "Public Sans"'),document.fonts.load('500 30px "Public Sans"'),document.fonts.load('400 30px "Public Sans"')])
     .then(redrawText).catch(function(){});
 }
+/* ---------- UI masalah ---------- */
+var probCard=document.getElementById('probCard'), probList=document.getElementById('problist'), probToggle=document.getElementById('probToggle');
+PROBS.forEach(function(pr,i){
+  var li=document.createElement('li'), b=document.createElement('button');
+  b.type='button'; b.className='pbtn';
+  b.innerHTML='<span class="pnum">'+(i+1)+'</span><span>'+pr.title+'</span>';
+  b.addEventListener('click',function(){openProb(i);});
+  li.appendChild(b); probList.appendChild(li);
+});
+function el(tag,html){var e=document.createElement(tag); e.innerHTML=html; return e;}
+function openProb(i){
+  focusIdx=i; var pr=PROBS[i];
+  document.getElementById('probNum').textContent=String(i+1);
+  document.getElementById('probTitle').textContent=pr.title;
+  document.getElementById('probText').textContent=pr.text;
+  var ul=document.getElementById('probOpts'); ul.innerHTML='';
+  pr.opts.forEach(function(o){ul.appendChild(el('li','<b>Opsi '+o[0]+':</b> '+o[1]));});
+  document.getElementById('probUsulan').innerHTML='<b>Usulan:</b> '+pr.usulan;
+  document.getElementById('probAnim').textContent=pr.anim;
+  document.getElementById('probIdx').textContent=(i+1)+' dari '+PROBS.length;
+  probCard.hidden=false; probCard.scrollTop=0;
+  PROBS.forEach(function(p,j){p.sprite.userData.select(j===i);});
+  probList.querySelectorAll('.pbtn').forEach(function(b,j){if(j===i)b.setAttribute('aria-current','true');else b.removeAttribute('aria-current');});
+  if(i===1){ jumpTo(23.0); setPlaying(!reduce); } else setPlaying(false);
+}
+function closeProb(){
+  focusIdx=-1; probCard.hidden=true;
+  PROBS.forEach(function(p){p.sprite.userData.select(false);});
+  probList.querySelectorAll('.pbtn').forEach(function(b){b.removeAttribute('aria-current');});
+}
+document.getElementById('probClose').addEventListener('click',closeProb);
+document.getElementById('probPrev').addEventListener('click',function(){openProb((focusIdx+PROBS.length-1)%PROBS.length);});
+document.getElementById('probNext').addEventListener('click',function(){openProb((focusIdx+1)%PROBS.length);});
+probToggle.addEventListener('change',function(){
+  probOn=probToggle.checked; probList.hidden=!probOn;
+  if(!probOn) closeProb();
+  panels.forEach(function(p){p.userData.reset();});
+  renderSteps();
+});
+window.addEventListener('keydown',function(e){if(e.key==='Escape'&&!probCard.hidden) closeProb();});
+
+/* klik tanda masalah di layar 3D */
+var ray=new THREE.Raycaster(), ndc=new THREE.Vector2(), down=null;
+function probAt(e){
+  if(!probOn) return -1;
+  var r=canvas.getBoundingClientRect();
+  ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+  ray.setFromCamera(ndc,camera);
+  var hits=ray.intersectObjects(PROBS.map(function(p){return p.sprite;}),false);
+  return hits.length?hits[0].object.userData.prob:-1;
+}
+canvas.addEventListener('pointerdown',function(e){down={x:e.clientX,y:e.clientY};});
+canvas.addEventListener('pointerup',function(e){
+  if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)<6){var i=probAt(e); if(i>=0) openProb(i);}
+  down=null;
+});
+canvas.addEventListener('pointermove',function(e){if(!e.buttons) canvas.style.cursor=probAt(e)>=0?'pointer':'';});
+
 /* ---------- ganti titik ---------- */
 function setGate(gt){
   G=gt;
   gateSign.userData.set('Titik '+G.n+': '+G.name);
   gateSign.position.y=G.canopy?8.2:6.9;
+  PROBS[4].sprite.position.y=gateSign.position.y;
+  PROBS[4].sprite.position.x=G.n===1?7.6:G.n===2?6.2:6.8;
+  closeProb();
   canopy.forEach(function(m){m.visible=G.canopy;});
   roadMat.color.set(G.dirt?0x8A7558:0x4B5258);
   roadMarks.forEach(function(m){m.visible=!G.dirt;});
