@@ -220,8 +220,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
   <ol class="steps" id="steps"></ol>
 
   <div class="probbox">
-    <label class="switch"><input type="checkbox" id="probToggle" checked><span>Tampilkan masalah yang perlu diputuskan</span></label>
-    <ol class="problist" id="problist"></ol>
+    <label class="switch"><input type="checkbox" id="probToggle"><span>Tampilkan masalah yang perlu diputuskan</span></label>
+    <ol class="problist" id="problist" hidden></ol>
   </div>
 
   <details class="survey">
@@ -755,7 +755,7 @@ PROBS.forEach(function(pr,i){
   pr.sprite=badgeSprite(String(i+1),pr.tag);
   pr.sprite.position.copy(pr.pos); pr.sprite.userData.prob=i; scene.add(pr.sprite);
 });
-var probOn=true, focusIdx=-1;
+var probOn=false, focusIdx=-1;
 
 /* ---------- titik pos pantau (dari laporan survei) ---------- */
 var JAM=' Jam layanan 05.00 sampai 17.00 dan hari libur operasional masih usulan.';
