@@ -82,6 +82,12 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .step[aria-current="true"] p{display:block}
 .step[aria-current="true"] .n{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .hint{margin:0;font-size:12.5px;line-height:1.55;color:var(--muted)}
+.survey{border:1px solid var(--line);border-radius:11px;padding:0 12px;font-size:13px;line-height:1.5}
+.survey summary{cursor:pointer;padding:10px 0;font-weight:600}
+.survey summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+.survey ul{margin:0 0 8px;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.survey p{margin:0 0 10px;color:var(--muted)}
+.survey .tag{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--chip);margin-left:4px}
 #fallback[hidden]{display:none}
 #fallback{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:#14282B;background:#BFD6E3}
 @media (max-width:760px){
@@ -99,7 +105,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
   <canvas id="c" role="img" aria-label="Animasi 3D alur uji coba e-MBLB di Titik 1: petugas memindai kartu sopir dengan mPOS, data dicatat, rekap operator, rekonsiliasi H+1, dan pendebetan."></canvas>
   <div class="hud">
     <h1>Pilot e-MBLB di Titik 1</h1>
-    <p>Toll gate Wira Bhumi dan RPM, Gempol. Ilustrasi alur, bukan replika lokasi.</p>
+    <p>Toll gate bersama Wira Bhumi dan RPM, Kec. Gempol (7°35'20.4"S 112°40'20.9"E). Ilustrasi alur, bukan replika lokasi.</p>
   </div>
   <div class="chip" id="chip" aria-live="off"></div>
   <div id="fallback" hidden>Library 3D tidak terbaca di file ini. Unduh ulang file terbaru lalu buka lagi.</div>
@@ -121,6 +127,17 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
   <input type="range" class="scrub" id="scrub" min="0" max="350" step="1" value="0" aria-label="Posisi animasi">
 
   <ol class="steps" id="steps"></ol>
+
+  <details class="survey">
+    <summary>Hasil survei titik pos pantau</summary>
+    <ul>
+      <li><strong>Titik 1</strong>, toll gate Wira Bhumi &amp; RPM<span class="tag">disimulasikan</span><br>7°35'20.4"S 112°40'20.9"E. Satu gate untuk dua IUP.</li>
+      <li><strong>Titik 2</strong>, gate PT Imasco (Colt)<br>-7.589008, 112.654311. Akses kendaraan kecil, ±1,8 km dari Titik 1.</li>
+      <li><strong>Titik 3</strong>, gate PT Imasco (Tronton)<br>7°36'28.3"S 112°40'11.1"E. Lewat jalan desa, ±2 km ke selatan.</li>
+    </ul>
+    <p>Ada 3 IUP di lokasi: Wira Bhumi, Imasco, dan RPM. Titik 1 belum mencakup Imasco, yang butuh pemantauan di Titik 2 dan 3. Titik pos pantau final belum ditetapkan.</p>
+    <p>Usulan libur operasional: Tahun Baru, Lebaran, Idul Adha, dan bulan Agustus (HUT RI). Kegiatan masyarakat sekitar disampaikan lewat surat resmi ke PT.</p>
+  </details>
 
   <p class="hint">Seret untuk memutar sudut pandang, gulir atau cubit untuk zoom. Nama, jumlah kendaraan, dan angka di layar 3D hanya contoh.</p>
 </section>
@@ -296,6 +313,9 @@ box(2.0,.5,12.4,M(0xE8742A),0,6.4,0);
 var gateSign = labelSprite('Titik 1: Toll Gate Wira Bhumi & RPM',{bg:'#E8742A',fg:'#FFFFFF',size:36,k:.017});
 gateSign.position.set(0,8.2,0); scene.add(gateSign);
 
+var roadTag = labelSprite('Jalan umum, truk pihak lain bisa lewat',{bg:'#4B5258',size:30,k:.014});
+roadTag.position.set(-24,2.2,7.4); scene.add(roadTag);
+
 /* palang */
 box(.4,1.2,.4,M(0xdddddd),.9,.6,-1.0);
 var arm = new THREE.Group(); arm.position.set(.9,1.15,-1.0); scene.add(arm);
@@ -450,7 +470,7 @@ var ledger=panelSprite(1024,640,7.6,drawLedger); ledger.position.set(SERVER.x,8.
 function drawRekap(g,w,h,s){
   g.fillStyle='#5b4326'; rr(g,0,0,w,h,34); g.fill();
   g.fillStyle='#FFD79A'; g.font='600 44px '+FONT; g.fillText('Rekap harian operator',44,84);
-  g.fillStyle='#E8C99A'; g.font='400 30px '+FONT; g.fillText('Pukul 17.00, kendaraan keluar per IUP',44,130);
+  g.fillStyle='#E8C99A'; g.font='400 30px '+FONT; g.fillText('Pukul 17.00, per IUP dari tiap pintu',44,130);
   var rows=[['Wira Bhumi','1 kendaraan','#5AA2E0'],['RPM','1 kendaraan','#6CCB7B']];
   g.font='500 36px '+FONT;
   for(var n=0;n<s.rows;n++){
@@ -491,17 +511,17 @@ var recon=panelSprite(1100,640,8.6,drawRecon); recon.position.set(SERVER.x,8.6,S
 /* ---------- langkah, mode, kamera ---------- */
 var STEPS=[
   {t0:0, p:0,chip:'Hari H, layanan 05.00 sampai 17.00',title:'Truk mendekati gate',
-   text:'Truk dari Wira Bhumi dan RPM lewat Titik 1, satu gate yang menutup dua IUP. Jam layanan 05.00 sampai 17.00 masih usulan.'},
+   text:'Truk Wira Bhumi dan RPM keluar lewat Titik 1, gate bersama dua IUP. Jalannya jalan umum, jadi truk pihak lain juga bisa lewat. Jam layanan 05.00 sampai 17.00 dan hari libur operasional masih usulan.'},
   {t0:6, p:1,chip:'Hari H, layanan 05.00 sampai 17.00',title:'Petugas memindai kartu sopir',
-   text:'Sopir menyerahkan kartunya, petugas e-MBLB memindai dengan mPOS. Jika kartu didaftarkan per kendaraan dan per IUP, asal IUP langsung terbaca, tidak perlu menunggu rekap sore.'},
+   text:'Saat ini asal IUP truk belum bisa dikenali di gate dan baru diketahui dari rekap operator sore hari. Dalam uji coba, petugas e-MBLB memindai kartu sopir dengan mPOS. Jika kartu didaftarkan per kendaraan dan per IUP, asal IUP langsung terbaca.'},
   {t0:14,p:2,chip:'Hari H, layanan 05.00 sampai 17.00',title:'Petugas mencatat transaksi',
    text:'Hasil pindai kartu dicatat petugas e-MBLB. Pada mode bayangan belum ada pendebetan atau pungutan.'},
   {t0:21,p:3,chip:'Hari H, menjelang 17.00',title:'Operator merekap sore hari',
-   text:'Operator tiap PT menyusun rekap kendaraan keluar per IUP, seperti yang berjalan sekarang.'},
+   text:'Operator tiap PT menyusun rekap harian kendaraan keluar per IUP dari masing-masing pintu, seperti yang berjalan sekarang.'},
   {t0:27,p:4,chip:'Hari H+1, pagi',title:'Rekonsiliasi H+1',
-   text:'Besok paginya data tap dibandingkan dengan rekap operator. Selisihnya dicatat sebagai bahan evaluasi uji coba.'},
+   text:'Besok paginya data tap dicocokkan dengan rekap sore antar-operator dari tiap pintu atau PT. Selisihnya dicatat sebagai bahan evaluasi uji coba. SOP rekonsiliasinya masih perlu disusun.'},
   {t0:35,p:5,chip:'Hari H+1, pagi',debit:true,title:'Pendebetan H+1',
-   text:'Setelah rekonsiliasi cocok, pendebetan dijalankan lewat Bank Jatim ke kas daerah. Skema rekeningnya masih dibahas dengan bank dan butuh dasar hukum yang jelas.'}
+   text:'Pendebetan diusulkan H+1, mengikuti hasil rekonsiliasi antar-operator, lewat Bank Jatim ke kas daerah. Skema rekeningnya masih dibahas dengan bank dan butuh dasar hukum yang jelas.'}
 ];
 var PRESETS=[
   {tx:-6,ty:1.4,tz:-2,r:34,th:-.5,ph:1.1},
